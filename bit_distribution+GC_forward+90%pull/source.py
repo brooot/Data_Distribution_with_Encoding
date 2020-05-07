@@ -35,6 +35,27 @@ def send(still_need_sending, ack_neighbor, Dest_ADDR, subsection_num, sockfd):
         print("%ds 后开始发送数据" % (3-i))
     t_begin = time.time()
     send_num = 0
+
+
+    # 首先发送一轮一度的包
+    # 获取所有的一轮中药发送的数据
+    bytes_List = get_bytesList_of_a_generation(subsection_num)
+    # 添加码字信息
+    dest_num = len(Dest_ADDR) # 获取转发层节点个数
+    recver_index = 0 # 记录当前要发给哪个转发层节点
+    for _id in range(1,subsection_num+1):
+        preSendData = ""
+        preSendData += str(_id) + "##"
+        preSendData = preSendData.encode() + bytes_List[_id-1]
+        send_with_loss_prob(sockfd, preSendData, Dest_ADDR[recver_index])
+        send_num += 1
+        recver_index = (recver_index+1) % dest_num
+        print("发送数据的编码信息: " + str(_id) + "\n---------------------------\n")
+        time.sleep(send_delay)
+
+    print("------------------第一轮发送完毕-----------------")
+
+    # 当仍然未解码, 开始编码发送
     while still_need_sending.value:
         for neighbor in Dest_ADDR:
             if len(ack_neighbor) < len(Dest_ADDR) :

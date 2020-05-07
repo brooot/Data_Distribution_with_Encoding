@@ -123,8 +123,6 @@ def recv_from_peer(sockfd_withPeer, Neigh_ADDR, L_decoded, L_undecoded, Q_need_t
             if addr in Neigh_ADDR:
                 # 收到来自peer 的数据个数 + 1
                 recv_Peer_num += 1
-                # if not need_to_forwardrecv.value:
-                #     break
 
                 data = data.decode()
 
