@@ -20,7 +20,7 @@ def get_bytesList_of_a_generation(k):
             line = f.readline().strip('\n')
             file_Lines.append(line.encode())
     bytes_list = file_Lines
-    # return file_Lines  # 返回记录的字节码列表
+    return bytes_list  # 返回记录的字节码列表
 
 
 # 二进制分布

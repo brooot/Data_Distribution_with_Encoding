@@ -16,14 +16,14 @@ Dest_ADDR = [
                     # ("127.0.0.1", 7004),
                 ]
 # 源端发送延迟
-send_delay = 0.1
+send_delay = 1
 
 # 转发层发送延迟
 forward_send_delay = send_delay 
 # forward_send_delay = len(Dest_ADDR) * send_delay + 0.2
 
 # 当已解码的比例超过该值时, 开始拉取未解码的内容.
-ratio_to_pull = 0.9
+ratio_to_pull = 0.5
 
 # 传输丢失率
 loss_rate = 0
