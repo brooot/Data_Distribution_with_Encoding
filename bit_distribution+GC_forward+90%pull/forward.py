@@ -139,6 +139,9 @@ def recv_from_peer(sockfd_withPeer, Neigh_ADDR, L_decoded, L_undecoded, Q_need_t
                             print("发送对方没有的数据: ", send_msg)
                             # print("发送对方没有的数据: ")
                             send_with_loss_prob(sockfd_withPeer, send_msg, addr)
+                            time.sleep(forward_send_delay)
+
+
                 else:
                     # 如果是新的交换数据请求
                     if data[0] == '!':
