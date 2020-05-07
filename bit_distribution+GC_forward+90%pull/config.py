@@ -23,7 +23,7 @@ forward_send_delay = send_delay
 # forward_send_delay = len(Dest_ADDR) * send_delay + 0.2
 
 # 当已解码的比例超过该值时, 开始拉取未解码的内容.
-ratio_to_pull = 0
+ratio_to_pull = 0.9
 
 # 传输丢失率
 loss_rate = 0
