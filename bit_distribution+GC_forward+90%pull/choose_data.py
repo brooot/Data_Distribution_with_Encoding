@@ -6,16 +6,21 @@ import operator
 # 每行的长度是:68
 # (136, 136)
 
+
+bytes_list = []
+
 # 一代中切片的个数是40
 # 获取一代中的 k 条数据的编码后的字节码列表
 def get_bytesList_of_a_generation(k):
+    global bytes_list
     file_Lines = []  # 一代数据列表 ['一条记录','一条记录',..., '一条记录'] 一代共 40 条
     num = 0
     with open("data.txt", "r") as f:
         for i in range(k):  # 一代 k 片数据, 每一片表示一条68字符的完整的记录
             line = f.readline().strip('\n')
             file_Lines.append(line.encode())
-    return file_Lines  # 返回记录的字节码列表
+    bytes_list = file_Lines
+    # return file_Lines  # 返回记录的字节码列表
 
 
 # 二进制分布
@@ -71,11 +76,12 @@ def data_coding(source_data, d):
 # 获取编码后的数据  这是度分布的实验
 def get_encoded_data(k, p):
     # 获取一代的字节码列表
-    bytes_list = get_bytesList_of_a_generation(k)
+    global bytes_list
+    if not bytes_list:
+        get_bytesList_of_a_generation(k)
     # 获取随机的编码度
     encode_degree = get_Degree(k, p)
-    # if encode_degree > 5:
-    #     encode_degree = 1
+
     print("编码度: ",encode_degree)
     return data_coding(bytes_list, encode_degree)
 
@@ -186,9 +192,6 @@ def get_forward_encoded_data(time_queue,L_decoded,L_undecoded,n_index):
         print("交换的数据内容: ", data)
 
 
-
-
-
 def get_forward_encoded_data_1(time_queue,L_decoded,L_undecoded,n_index):
     if len(L_undecoded)>0:
         m_info = ""
@@ -207,7 +210,6 @@ def get_forward_encoded_data_1(time_queue,L_decoded,L_undecoded,n_index):
         data =(key1 + "##").encode() + value1
         # print("data: ", data)
         return data
-
 
 
 # 转发层编码使用的方法,一直到我最大的最下于度的时候
