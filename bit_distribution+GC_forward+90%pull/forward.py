@@ -338,10 +338,10 @@ def comm_with_source(ADDR, L_decoded, L_undecoded, source_not_confirmed, lock_of
             #         f.write(record)
             # print("\n解码数据已经存放在 PureFountainCode_Recv" + str(ADDR) + ".txt 中")
 
-            # with open("PureFountainCode_Log" + str(ADDR) + ".txt", 'wb') as f:
-            #     for i in recvNum_and_decodeNum:
-            #         f.write("(%d, %d),".encode() % i)
-            # print("解码过程信息存放在 PureFountainCode_Log" + str(ADDR) + ".txt 中")
+            with open("Decoding_Log" + str(ADDR) + ".txt", 'wb') as f:
+                for i in recvNum_and_decodeNum:
+                    f.write("(%d, %d),".encode() % i)
+            print("解码过程信息存放在 PureFountainCode_Log" + str(ADDR) + ".txt 中")
             print("从源端共收到 %d 个码字." % recv_num)
 
             break
