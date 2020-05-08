@@ -5,3 +5,7 @@ bit_distribution+GC_forward+notPull/GC_forward_Recv('127.0.0.1', 7003).txt
 bit_distribution+GC_forward+notPull/GC_forward_Recv('127.0.0.1', 7002).txt
 bit_distribution+GC_forward+notPull/GC_forward_Recv('127.0.0.1', 7001).txt
 *.txt
+*.csv
+bit_distribution+GC_forward+90%pull/config.py
+bit_distribution+GC_forward+90%pull/config.py
+bit_distribution+GC_forward+90%pull/config.py

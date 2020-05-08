@@ -7,7 +7,7 @@ from config import *
 from choose_data import  *
 from config import *
 
-import sys, random, os, time, copy, time, threading, select
+import sys, random, os, time, copy, time, threading, select, csv
 
 
 # 返回自己没有的码字部分
@@ -280,6 +280,7 @@ def comm_with_source(ADDR, L_decoded, L_undecoded, source_not_confirmed, lock_of
 
     print("主机 " + ADDR[0] + ":" + str(ADDR[1]) + " 正在等待数据...\n")
 
+    sendRound_and_decodeNum = []
     recvNum_and_decodeNum = []
     recv_num = 0
     decoded_num = 0
@@ -290,6 +291,10 @@ def comm_with_source(ADDR, L_decoded, L_undecoded, source_not_confirmed, lock_of
         recv_num += 1
         # 数据解码
         data = data.decode()
+
+        # 提取源的发送轮次
+        send_round, data = data.split("~")
+
         m_info_set = set(data.split("##", 1)[0].split("@"))
         # 获取码字数据(字符串的字节码)
 
@@ -302,10 +307,11 @@ def comm_with_source(ADDR, L_decoded, L_undecoded, source_not_confirmed, lock_of
             # 使用刚刚接收到的数据进行解码
             recv_Handler(m_info_set, m_data, L_decoded, L_undecoded)
 
-        if len(L_decoded) > decoded_num:
-            # 当解码个数有变化的时候,记录此时的接受数量与解码数量的关系
-            decoded_num = len(L_decoded)
-            recvNum_and_decodeNum.append((recv_num, decoded_num))
+        sendRound_and_decodeNum.append((send_round, len(L_decoded)))
+        # if len(L_decoded) > decoded_num:
+        #     # 当解码个数有变化的时候,记录此时的接受数量与解码数量的关系
+        #     decoded_num = len(L_decoded)
+        #     recvNum_and_decodeNum.append((recv_num, decoded_num))
 
 
         # print("\n------------------------------")
@@ -329,7 +335,17 @@ def comm_with_source(ADDR, L_decoded, L_undecoded, source_not_confirmed, lock_of
             p_send_ack.join()
 
 
-            #
+            # 将解码数据记录到excel表格中
+            with open("Decoding_Log" + str(ADDR) + ".csv","w",newline="") as datacsv:
+                #dialect为打开csv文件的方式，默认是excel，delimiter="\t"参数指写入的时候的分隔符
+                csvwriter = csv.writer(datacsv,dialect = ("excel"))
+                #csv文件插入一行数据，把下面列表中的每一项放入一个单元格（可以用循环插入多行）
+                csvwriter.writerow(["源的发送轮次", "已解码个数"])
+                for sen_round, deco_num in sendRound_and_decodeNum:
+                    csvwriter.writerow([sen_round, deco_num])
+
+
+            sendRound_and_decodeNum
             # # 将解码出的数据存放到txt文件中
             # with open("PureFountainCode_Recv" + str(ADDR) + ".txt", 'wb') as f:
             #     data_to_save = sorted(L_decoded.items(), key=lambda x: int(x[0]))
@@ -338,10 +354,10 @@ def comm_with_source(ADDR, L_decoded, L_undecoded, source_not_confirmed, lock_of
             #         f.write(record)
             # print("\n解码数据已经存放在 PureFountainCode_Recv" + str(ADDR) + ".txt 中")
 
-            with open("Decoding_Log" + str(ADDR) + ".txt", 'wb') as f:
-                for i in recvNum_and_decodeNum:
-                    f.write("(%d, %d),".encode() % i)
-            print("解码过程信息存放在 PureFountainCode_Log" + str(ADDR) + ".txt 中")
+            # with open("Decoding_Log" + str(ADDR) + ".txt", 'wb') as f:
+            #     for i in recvNum_and_decodeNum:
+            #         f.write("(%d, %d),".encode() % i)
+            # print("解码过程信息存放在 PureFountainCode_Log" + str(ADDR) + ".txt 中")
             print("从源端共收到 %d 个码字." % recv_num)
 
             break

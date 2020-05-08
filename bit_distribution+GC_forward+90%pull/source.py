@@ -44,11 +44,12 @@ def send(still_need_sending, ack_neighbor, Dest_ADDR, subsection_num, sockfd):
     dest_num = len(Dest_ADDR) # 获取转发层节点个数
     recver_index = 0 # 记录当前要发给哪个转发层节点
     for _id in range(1,subsection_num+1):
+        send_num += 1
         preSendData = ""
         preSendData += str(_id) + "##"
         preSendData = preSendData.encode() + bytes_List[_id-1]
+        preSendData = (str(send_num) + "~").encode() + preSendData
         send_with_loss_prob(sockfd, preSendData, Dest_ADDR[recver_index])
-        send_num += 1
         recver_index = (recver_index+1) % dest_num
         print("发送数据的编码信息: " + str(_id) + "\n---------------------------\n")
         time.sleep(send_delay)
@@ -64,8 +65,9 @@ def send(still_need_sending, ack_neighbor, Dest_ADDR, subsection_num, sockfd):
                     #度时刻转换序列
                     # 度分布函数
                     # encoded_Data = get_encoded_data_sort(subsection_num, p,send_num,len(Dest_ADDR))
-                    encoded_Data = get_encoded_data(subsection_num, p)
                     send_num += 1
+                    encoded_Data = get_encoded_data(subsection_num, p)
+                    encoded_Data = (str(send_num) + "~").encode() + encoded_Data
                     send_with_loss_prob(sockfd, encoded_Data, neighbor)
                     time.sleep(send_delay)
             else:
