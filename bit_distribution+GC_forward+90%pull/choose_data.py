@@ -150,17 +150,16 @@ def get_forward_encoded_data(time_queue,L_decoded,L_undecoded,n_index):
             data = (a + "##").encode() + L_decoded[a]
             return  data
     else:
-        degreeMax = time_queue[n_index]
+        degreeMax = time_queue[n_index] # 获取最大的度
         codeList = []
         maxIter = 50
-        iter = 0
-        while degreeMax > 0 and iter < maxIter:
-            iter+=1
+        _iter = 0
+        while degreeMax > 0 and _iter < maxIter: # 没有超过 最大的index
+            _iter+=1
             # 随机数为1的话就选择从已解码中选取
-            if random.randint(1,3) == 1:
-                a = random.sample(L_decoded.keys(), 1)  # 随机一个字典中的key，第二个参数为限制个数
-                b = a[0]
-                degreeMax-=1
+            if random.randint(1,3) == 1:  # 以三分之一的概率随机编码一个已解码的一度包进去
+                b = random.sample(L_decoded.keys(), 1)[0]  # 从已解码中得到一个随机
+                degreeMax -= 1
                 # 添加码字信息
                 codeList.append(L_decoded[b])
                 if (m_info == ""):
@@ -170,7 +169,7 @@ def get_forward_encoded_data(time_queue,L_decoded,L_undecoded,n_index):
             else:
                 if len(L_undecoded) != 0: # 如果有未解码的码字
                     a = random.sample(list(L_undecoded), 1)  # 从中随机选出一个
-                    if degreeMax-len(a[0][0]) >=0:
+                    if degreeMax-len(a[0][0]) >=0: # 判断加上当前未解码的码字回复会超过最大允许的度
                         degreeMax = degreeMax - len(a[0][0])
                         codeList.append(a[0][1])
                         for i in a[0][0]:
@@ -178,13 +177,6 @@ def get_forward_encoded_data(time_queue,L_decoded,L_undecoded,n_index):
                                 m_info += str(i)
                             else:
                                 m_info += "@" + str(i)
-                    else:
-                        continue
-                else:
-                    continue
-                # break
-        if len(codeList) == 0:
-            return  "null_at_all"
         m_code = bytesList_Xor_to_Bytes(codeList)
         # 已经编码后的字节码数据
         data = (m_info + "##").encode() + m_code
@@ -229,9 +221,9 @@ def get_forward_encoded_data_oldGC(time_queue,L_decoded,L_undecoded,n_index):
         m_info = ""
         codeList = []
         maxIter = 50
-        iter = 0
-        while degreeMax > 0 and iter < maxIter:
-            iter+=1
+        _iter = 0
+        while degreeMax > 0 and _iter < maxIter:
+            _iter+=1
             # 随机数为1的话就选择从已解码中选取
             if random.randint(1,2) == 1:
                 a = random.sample(L_decoded.keys(), 1)  # 随机一个字典中的key，第二个参数为限制个数

@@ -196,6 +196,8 @@ def feedback_to_peer(sockfd_withPeer, Q_need_to_sendback, time_queue, L_decoded,
                 start_index += 1
                 # print("start_index: ", start_index)
                 send_with_loss_prob(sockfd_withPeer, encoded_Data, peerAddr)
+                time.sleep(forward_send_delay)
+
 
 
 
