@@ -130,13 +130,11 @@ def getDegreeSququeGC(nsource):
 
 # 转发层编码使用的方法，假如选出一个包，这个包比我的度小，就ok
 # time_queue  时间序列  L_decoded 已解码序列  L_undecoded未解码序列   n_index时间转换序列的轮次
-def get_forward_encoded_data(time_queue,L_decoded,L_undecoded,n_index):
-    if len(L_decoded) == 0 and len(L_undecoded) == 0:
-        return  "null_1"
+def get_forward_encoded_data(nei_Need_codes, time_queue, L_decoded, L_undecoded, n_index):
     m_info = ""
-    if time_queue[n_index] == 1:
-        if len(L_decoded) == 0:
-            a = L_undecoded[0]  # 随机一个字典中的key，第二个参数为限制个数
+    if time_queue[n_index] == 1: # 序列为1
+        if len(L_decoded) == 0: # 没有已解码的
+            a = L_undecoded[0]  # 取未解码中的第一个包发出去
             for i in list(a[0]):
                 if (m_info == ""):
                     m_info += str(i)
@@ -144,52 +142,81 @@ def get_forward_encoded_data(time_queue,L_decoded,L_undecoded,n_index):
                     m_info += "@" + str(i)
             data = (m_info + "##").encode() + a[1]
             return data
-
+        elif nei_Need_codes:
+            for key in L_decoded.keys(): # 优先取出对方要且我有的发给他
+                if key in nei_Need_codes:
+                    return (key + "##").encode() + L_decoded[key]
         else:
-            a = random.sample(L_decoded.keys(), 1)[0]  # 随机一个字典中的key，第二个参数为限制个数
-            data = (a + "##").encode() + L_decoded[a]
+            a = random.sample(L_decoded.keys(), 1)  # 随机一个字典中的key，第二个参数为限制个数
+            b = a[0]
+            data = (b + "##").encode() + L_decoded[b]
             return  data
+
     else:
+        m_info_list = []
         degreeMax = time_queue[n_index]
         codeList = []
         maxIter = 50
-        iter = 0
-        while degreeMax > 0 and iter < maxIter:
-            iter+=1
+        _iter = 0
+        only_undecoded = False # 已解码中没有对方需要的
+        while degreeMax > 0 and _iter < maxIter:
+            _iter += 1
             # 随机数为1的话就选择从已解码中选取
-            if random.randint(1,3) == 1:
-                a = random.sample(L_decoded.keys(), 1)  # 随机一个字典中的key，第二个参数为限制个数
-                b = a[0]
-                degreeMax-=1
-                # 添加码字信息
-                codeList.append(L_decoded[b])
-                if (m_info == ""):
-                    m_info += str(b)
-                else:
-                    m_info += "@" + str(b)
-            else:
+            if not only_undecoded and random.randint(1,fenmu) <= fenzi:
+                added = False # 记录是否找到对方没有的一度包
+                for key in L_decoded.keys(): # 优先取出对方要且我有的发给他
+                    if key in nei_Need_codes and key not in m_info_list:
+                        m_info_list.append(key)
+                        if (m_info == ""):
+                            m_info += str(key)
+                        else:
+                            m_info += "@" + str(key)
+                        codeList.append(L_decoded[key])
+                        degreeMax -= 1
+                        added = True
+
+                if not added: # 如果没找到对方要的就标记只发未解码中的
+                    only_undecoded = True
+                    
+            else: # 从未解码中找
                 if len(L_undecoded) != 0: # 如果有未解码的码字
-                    a = random.sample(list(L_undecoded), 1)  # 从中随机选出一个
-                    if degreeMax-len(a[0][0]) >=0:
-                        degreeMax = degreeMax - len(a[0][0])
-                        codeList.append(a[0][1])
-                        for i in a[0][0]:
-                            if (m_info == ""):
-                                m_info += str(i)
-                            else:
-                                m_info += "@" + str(i)
-                    else:
-                        continue
-                else:
-                    continue
-                # break
-        if len(codeList) == 0:
-            return  "null_at_all"
-        m_code = bytesList_Xor_to_Bytes(codeList)
-        # 已经编码后的字节码数据
-        data = (m_info + "##").encode() + m_code
-        return  data
-        print("交换的数据内容: ", data)
+                    # 先找未解码中全都是对方需要的码字
+                    added = False # 标记是否找到全为对方需要的未解码包
+                    for info_set, data_byte in L_undecoded:
+                        if info_set - set(nei_Need_codes) == set() and len(info_set)<=degreeMax: # 此未解码包中尽是对方没有的
+                            added = True
+                            degreeMax -= len(info_set)
+                            for i in info_set: # 记录info信息
+                                if (m_info == ""):
+                                    m_info += str(i)
+                                else:
+                                    m_info += "@" + str(i)
+
+                            codeList.append(data_byte) # 添加待编码的码字
+
+
+                    # 未解码中没有全是对方需要的包的情况
+                    if not added:
+                        a = random.sample(list(L_undecoded), 1)  # 从中随机选出一个编码包
+                        if len(a[0][0]) <= degreeMax:
+                            degreeMax = degreeMax - len(a[0][0])
+                            codeList.append(a[0][1])
+                            for i in a[0][0]:
+                                if (m_info == ""):
+                                    m_info += str(i)
+                                else:
+                                    m_info += "@" + str(i)
+                        else:
+                            degreeMax -= 1
+                
+        if len(codeList) > 0:
+            m_code = bytesList_Xor_to_Bytes(codeList)
+            # 已经编码后的字节码数据
+            data = (m_info + "##").encode() + m_code
+            return  data
+            print("交换的数据内容: ", data)
+        else:
+            return None
 
 
 def get_forward_encoded_data_1(time_queue,L_decoded,L_undecoded,n_index):

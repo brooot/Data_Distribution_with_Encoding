@@ -7,10 +7,9 @@ from config import *
 from choose_data import  *
 from config import *
 
-import sys, random, os, time, copy, time, threading, select
+import sys, random, os, time, copy, time, threading, select, csv
 
-# 记录邻居需要的码字表
-nei_Need_Map = {}
+
 
 
 # 返回自己没有的码字部分
@@ -96,7 +95,7 @@ def send_ack(source_not_confirmed, sockfd, addr):
 # 确认源端收到ack 假设最终的还有转发层服务器没有解码出全量，那么已经解码出全部的服务器还需要继续工作的。
 def confirm_ack(source_not_confirmed, need_to_forwardrecv, sockfd, source_addr):
     while need_to_forwardrecv.value:
-        data, address = sockfd.recvfrom(1024)
+        data, address = sockfd.recvfrom(4096)
         if source_addr == address and data.decode() == "got_it":
             print("发送方已经收到ack")
             source_not_confirmed.value = False
@@ -107,9 +106,7 @@ def confirm_ack(source_not_confirmed, need_to_forwardrecv, sockfd, source_addr):
 
 
 # 从转发层邻居收到的交换信息
-def recv_from_peer(sockfd_withPeer, Neigh_ADDR, L_decoded, L_undecoded, Q_need_to_sendback, need_to_forwardrecv, lock_of_L):
-
-    global nei_Need_Map
+def recv_from_peer(nei_Need_Map, sockfd_withPeer, Neigh_ADDR, L_decoded, L_undecoded, Q_need_to_sendback, need_to_forwardrecv, lock_of_L):
 
     inputs = [sockfd_withPeer]
 
@@ -120,7 +117,7 @@ def recv_from_peer(sockfd_withPeer, Neigh_ADDR, L_decoded, L_undecoded, Q_need_t
         r_list = select.select(inputs, [], inputs, 1)[0]
         if r_list:
             try:
-                data, addr = sockfd_withPeer.recvfrom(2048)
+                data, addr = sockfd_withPeer.recvfrom(4096)
             except Exception as e:
                 print("peer接收套接字异常, 错误信息: ", e)
             
@@ -132,34 +129,36 @@ def recv_from_peer(sockfd_withPeer, Neigh_ADDR, L_decoded, L_undecoded, Q_need_t
                 data = data.decode()
 
                 # 如果是邻居来拉取信息, 将有的都发给邻居
-                split_data = data.split("&")[:-1]
-                if split_data: # 如果带有请求数据
-                    data = data.split('&')[-1]
-                    # 记录对方需要的数据
-                    nei_Need_Map[addr] = split_data
+                codes_peer_need = data.split("&")[:-1]
+                # if codes_peer_need: # 如果带有请求数据
+                data = data.split('&')[-1]
 
-                    # 根据当前度编码并返回给对方
+                # print("codes_peer_need: ", codes_peer_need)
 
-                    # 本地有对方需要的数据,发送给他
-                    # send_msg = (need_index + "##").encode() + L_decoded[need_index]
-                    # print("发送对方没有的数据: ", send_msg)
-                    # # print("发送对方没有的数据: ")
-                    # send_with_loss_prob(sockfd_withPeer, send_msg, addr)
-                else:
-                    # 如果是新的交换数据请求
-                    if data[0] == '!':
-                        data = data[1:]
-                        # 将地址传给发送进程, 告知其回发数据的地址
-                        if(Q_need_to_sendback.qsize() == len(Neigh_ADDR)):
-                            print("Q_need_to_sendback 长度已达最大值, 不可以再添加.")
-                            raise
+                # 记录对方需要的数据
+                nei_Need_Map[addr] = codes_peer_need
+
+                # 如果是请求数据, 则需要回应
+                if data[0] == '!':
+                    data = data[1:]
+                    print(time.ctime().split(" ")[4], "收到  交换请求 <--- ", addr)
+                    if(Q_need_to_sendback.qsize() < len(Neigh_ADDR)):
                         Q_need_to_sendback.put(addr)
-                        # print("\n", time.ctime().split(" ")[3], "收到  交换请求 <--- ", addr[1], "\n")
-                        print("\n收到  交换请求 <--- ", addr[1], "\n")
-                    # 是反馈数据
-                    else:
-                        # print("\n", time.ctime().split(" ")[3],"转发层 收到回复 <--- ", addr[1], "\n")
-                        print("\n收到回复 <--- ", addr[1], "\n")
+                    # print("Q_need_to_sendback is empty: ", Q_need_to_sendback.empty())
+                else:
+                    print(time.ctime().split(" ")[4], "收到  反馈信息 <--- ", addr)
+
+                # else:
+                #     # 如果是新的交换数据请求
+                #     if data[0] == '!':
+                #         data = data[1:]
+                #         # 将地址传给发送进程, 告知其回发数据的地址
+                #         # if(Q_need_to_sendback.qsize() < len(Neigh_ADDR)):
+                #         #     Q_need_to_sendback.put(addr)
+                #         # print(time.ctime().split(" ")[4], "收到  交换请求 <--- ", addr)
+                #     # 是反馈数据
+                #     else:
+                #         print(time.ctime().split(" ")[4], "收到  反馈信息 <--- ", addr)
 
                 m_info_set = set(data.split("##", 1)[0].split("@"))
                 # 获取码字数据(字符串的字节码)
@@ -186,8 +185,7 @@ def recv_from_peer(sockfd_withPeer, Neigh_ADDR, L_decoded, L_undecoded, Q_need_t
 
 
 
-def feedback_to_peer(sockfd_withPeer, Q_need_to_sendback, time_queue, L_decoded, L_undecoded, start_index, source_not_confirmed, need_to_forwardrecv):
-    global nei_Need_Map
+def feedback_to_peer(nei_Need_Map, sockfd_withPeer, Q_need_to_sendback, time_queue, L_decoded, L_undecoded, start_index, source_not_confirmed, need_to_forwardrecv):
     while len(L_decoded) + len(L_undecoded) == 0:
         pass
 
@@ -196,13 +194,20 @@ def feedback_to_peer(sockfd_withPeer, Q_need_to_sendback, time_queue, L_decoded,
         while not Q_need_to_sendback.empty():
             peerAddr = Q_need_to_sendback.get()
             # 选出数据发送给该邻居
-            encoded_Data = get_forward_encoded_data(nei_Need_Map[peerAddr], time_queue, L_decoded, L_undecoded, start_index)
+            if peerAddr in nei_Need_Map:
+                need_codes = nei_Need_Map[peerAddr]
+            else:
+                need_codes = []
+            # print("feedback needcode:", need_codes)
+            encoded_Data = get_forward_encoded_data(need_codes, time_queue, L_decoded, L_undecoded, start_index)
             if encoded_Data:
-                print("\n\n", time.ctime().split(" ")[3], "转发层 回发应答 ---> :", peerAddr[1])
+                print(time.ctime().split(" ")[4], "发送  应答码字 ---> ", peerAddr)
                 start_index += 1
                 # print("start_index: ", start_index)
                 send_with_loss_prob(sockfd_withPeer, encoded_Data, peerAddr)
                 time.sleep(forward_send_delay) # 延迟
+            # else:
+            #     print("None, 不反馈")
                 
 
 
@@ -210,8 +215,8 @@ def feedback_to_peer(sockfd_withPeer, Q_need_to_sendback, time_queue, L_decoded,
 
 # 转发层之间互相发送使用的端口比转发层接收源的端口加1
 def comm_with_peer(ADDR, L_decoded, L_undecoded, source_not_confirmed, lock_of_L, need_to_forwardrecv):
-    global nei_Need_Map
-    
+    # 记录邻居需要的码字表
+    nei_Need_Map = Manager().dict()
     # 创建与转发层邻居通信的套接字
     sockfd_withPeer = socket(AF_INET, SOCK_DGRAM)
     sockfd_withPeer.settimeout(forward_send_delay)
@@ -225,7 +230,7 @@ def comm_with_peer(ADDR, L_decoded, L_undecoded, source_not_confirmed, lock_of_L
     Q_need_to_sendback = Queue(len(Neigh_ADDR))
 
     # 接收转发层数据的线程
-    t_recv_from_peer = Process(target=recv_from_peer, args=(sockfd_withPeer, Neigh_ADDR, L_decoded, L_undecoded, Q_need_to_sendback, need_to_forwardrecv, lock_of_L))
+    t_recv_from_peer = Process(target=recv_from_peer, args=(nei_Need_Map, sockfd_withPeer, Neigh_ADDR, L_decoded, L_undecoded, Q_need_to_sendback, need_to_forwardrecv, lock_of_L))
     
     # 开始接受线程
     t_recv_from_peer.start()
@@ -237,7 +242,7 @@ def comm_with_peer(ADDR, L_decoded, L_undecoded, source_not_confirmed, lock_of_L
     time_queue = getDegreeSququeGC(len(Neigh_ADDR))
     
     # 回发进程
-    t_feedback_to_peer = Process(target=feedback_to_peer, args=(sockfd_withPeer, Q_need_to_sendback, time_queue, L_decoded, L_undecoded, start_index, source_not_confirmed, need_to_forwardrecv))
+    t_feedback_to_peer = Process(target=feedback_to_peer, args=(nei_Need_Map, sockfd_withPeer, Q_need_to_sendback, time_queue, L_decoded, L_undecoded, start_index, source_not_confirmed, need_to_forwardrecv))
     # 开始回馈线程
     t_feedback_to_peer.start()
     
@@ -246,38 +251,42 @@ def comm_with_peer(ADDR, L_decoded, L_undecoded, source_not_confirmed, lock_of_L
 
     # 开始转发层发送
     while source_not_confirmed.value:
-        # 当自身已经解码完成, 不再主动发送交换
-        # if not source_not_confirmed.value:
-        #     break
         # 获取随机peer地址
         dest_addr = Neigh_ADDR[random.randint(0, len(Neigh_ADDR) - 1)]
-        # 如果已解码数量大于90%
-        if len(L_decoded)>ratio_to_pull*subsection_num and len(L_decoded)<subsection_num:
-            request_infos = ""
-            for i in range(subsection_num):
-                if str(i) not in L_decoded.keys():
-                    request_infos += str(i) + '&'
-            forward_encoded_data = get_forward_encoded_data(nei_Need_Map[dest_addr], time_queue, L_decoded, L_undecoded, start_index)
-            if forward_encoded_data: # 仅当需要发送时发送
-                encoded_Data = request_infos.encode() + forward_encoded_data
-                start_index += 1
-                send_with_loss_prob(sockfd_withPeer, encoded_Data, dest_addr)
-                time.sleep(forward_send_delay) # 延迟
-            else:
-                print("无对方没有的一度包, 故不发送")
-
-
+        # if len(L_decoded)>ratio_to_pull*subsection_num and len(L_decoded)<subsection_num:
+        request_infos = "" # 需要的信息
+        for i in range(1,subsection_num+1):
+            if str(i) not in L_decoded.keys():
+                request_infos += str(i) + '&'
+        if dest_addr in nei_Need_Map:
+            need_codes = nei_Need_Map[dest_addr]
         else:
-            # 获取编码后用于转发层交换的数据
-            forward_encoded_data = get_forward_encoded_data(nei_Need_Map[dest_addr], time_queue, L_decoded, L_undecoded, start_index)
-            if forward_encoded_data: # 仅当需要发送时发送
-                encoded_Data = '!'.encode() + forward_encoded_data
-                print("\n\n", time.ctime().split(" ")[3], "转发层 发送请求 ---> :", dest_addr[1])
-                start_index += 1
-                send_with_loss_prob(sockfd_withPeer, encoded_Data, dest_addr)
-                time.sleep(forward_send_delay) # 延迟
-            else:
-                print("无对方没有的一度包, 故不发送")
+            need_codes = []
+        # print("need codes: ", need_codes)
+        forward_encoded_data = get_forward_encoded_data(need_codes, time_queue, L_decoded, L_undecoded, start_index)
+        # print("encoded data: ", forward_encoded_data)
+        if forward_encoded_data: # 仅当需要发送时发送
+            # print("需要的码字:", request_infos)
+            encoded_Data = (request_infos + '!').encode() + forward_encoded_data
+            start_index += 1
+            print(time.ctime().split(" ")[4], "发送  请求码字 ---> ", dest_addr)
+            send_with_loss_prob(sockfd_withPeer, encoded_Data, dest_addr)
+            time.sleep(forward_send_delay) # 延迟
+        # else:
+            # print("无对方没有的一度包, 故不发送")
+
+
+        # else:
+        #     # 获取编码后用于转发层交换的数据
+        #     forward_encoded_data = get_forward_encoded_data(nei_Need_Map[dest_addr], time_queue, L_decoded, L_undecoded, start_index)
+        #     if forward_encoded_data: # 仅当需要发送时发送
+        #         encoded_Data = '!'.encode() + forward_encoded_data
+        #         print("\n\n", time.ctime().split(" ")[4], "转发层 发送请求 ---> :", dest_addr)
+        #         start_index += 1
+        #         send_with_loss_prob(sockfd_withPeer, encoded_Data, dest_addr)
+        #         time.sleep(forward_send_delay) # 延迟
+        #     else:
+        #         print("无对方没有的一度包, 故不发送")
 
     t_feedback_to_peer.join()
     t_recv_from_peer.join()
@@ -293,6 +302,7 @@ def comm_with_source(ADDR, L_decoded, L_undecoded, source_not_confirmed, lock_of
 
     print("主机 " + ADDR[0] + ":" + str(ADDR[1]) + " 正在等待数据...\n")
 
+    sendRound_and_decodeNum = []
     recvNum_and_decodeNum = []
     recv_num = 0
     decoded_num = 0
@@ -303,6 +313,10 @@ def comm_with_source(ADDR, L_decoded, L_undecoded, source_not_confirmed, lock_of
         recv_num += 1
         # 数据解码
         data = data.decode()
+
+        # 提取源的发送轮次
+        send_round, data = data.split("~")
+
         m_info_set = set(data.split("##", 1)[0].split("@"))
         # 获取码字数据(字符串的字节码)
 
@@ -315,10 +329,11 @@ def comm_with_source(ADDR, L_decoded, L_undecoded, source_not_confirmed, lock_of
             # 使用刚刚接收到的数据进行解码
             recv_Handler(m_info_set, m_data, L_decoded, L_undecoded)
 
-        if len(L_decoded) > decoded_num:
-            # 当解码个数有变化的时候,记录此时的接受数量与解码数量的关系
-            decoded_num = len(L_decoded)
-            recvNum_and_decodeNum.append((recv_num, decoded_num))
+        sendRound_and_decodeNum.append((send_round, len(L_decoded)))
+        # if len(L_decoded) > decoded_num:
+        #     # 当解码个数有变化的时候,记录此时的接受数量与解码数量的关系
+        #     decoded_num = len(L_decoded)
+        #     recvNum_and_decodeNum.append((recv_num, decoded_num))
 
 
         # print("\n------------------------------")
@@ -342,20 +357,31 @@ def comm_with_source(ADDR, L_decoded, L_undecoded, source_not_confirmed, lock_of
             p_send_ack.join()
 
 
-            #
+            # 将解码数据记录到excel表格中
+            with open("Decoding_Log" + str(ADDR) + ".csv","w",newline="") as datacsv:
+                #dialect为打开csv文件的方式，默认是excel，delimiter="\t"参数指写入的时候的分隔符
+                csvwriter = csv.writer(datacsv,dialect = ("excel"))
+                #csv文件插入一行数据，把下面列表中的每一项放入一个单元格（可以用循环插入多行）
+                csvwriter.writerow(["源的发送轮次", "已解码个数"])
+                for sen_round, deco_num in sendRound_and_decodeNum:
+                    csvwriter.writerow([sen_round, deco_num])
+
+
+            sendRound_and_decodeNum
             # # 将解码出的数据存放到txt文件中
-            with open("GC_forward_Recv" + str(ADDR) + ".txt", 'wb') as f:
+            with open("GCforward_Recv" + str(ADDR) + ".txt", 'wb') as f:
                 data_to_save = sorted(L_decoded.items(), key=lambda x: int(x[0]))
                 for line in data_to_save:
                     record = line[1] + "\n".encode()
                     f.write(record)
             print("\n解码数据已经存放在 PureFountainCode_Recv" + str(ADDR) + ".txt 中")
 
-            # with open("PureFountainCode_Log" + str(ADDR) + ".txt", 'wb') as f:
+            # with open("Decoding_Log" + str(ADDR) + ".txt", 'wb') as f:
             #     for i in recvNum_and_decodeNum:
             #         f.write("(%d, %d),".encode() % i)
             # print("解码过程信息存放在 PureFountainCode_Log" + str(ADDR) + ".txt 中")
             print("从源端共收到 %d 个码字." % recv_num)
+            print("分段数量: %d" % subsection_num)
 
             break
     sockfd.close()
