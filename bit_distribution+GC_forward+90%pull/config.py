@@ -1,7 +1,7 @@
 import random
 
 # 一代发送的编码分段大小
-subsection_num = 100
+subsection_num = 50
 
 # 端口偏移
 PortOffset = 100
@@ -16,7 +16,7 @@ Dest_ADDR = [
                     # ("127.0.0.1", 7004),
                 ]
 # 源端发送延迟
-send_delay = 0.5
+send_delay = 0.2
 
 # 转发层发送延迟
 forward_send_delay = send_delay 

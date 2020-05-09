@@ -145,16 +145,17 @@ def recv_from_peer(sockfd_withPeer, Neigh_ADDR, L_decoded, L_undecoded, Q_need_t
                     if data[0] == '!':
                         data = data[1:]
                         # 将地址传给发送进程, 告知其回发数据的地址
-                        if(Q_need_to_sendback.qsize() == 3):
-                            print("Q_need_to_sendback 长度已达最大值, 不可以再添加.")
-                            raise
-                        Q_need_to_sendback.put(addr)
-                        # print("\n", time.ctime().split(" ")[3], "收到  交换请求 <--- ", addr[1], "\n")
-                        print("\n收到  交换请求 <--- ", addr[1], "\n")
+                            # print("Q_need_to_sendback 长度已达最大值, 不可以再添加.")
+                            # raise
+
+                        if(Q_need_to_sendback.qsize() < len(Neigh_ADDR)):
+                            Q_need_to_sendback.put(addr)
+                            print(time.ctime().split(" ")[4], "收到   请 求 <--- ", addr[1], "\n")
+                            # print("\n收到  交换请求 <--- ", addr[1], "\n")
                     # 是反馈数据
                     else:
-                        # print("\n", time.ctime().split(" ")[3],"转发层 收到回复 <--- ", addr[1], "\n")
-                        print("\n收到回复 <--- ", addr[1], "\n")
+                            print(time.ctime().split(" ")[4], "收到   回 复 <--- ", addr[1], "\n")
+                        # print("\n收到  回复     <--- ", addr[1], "\n")
 
                 m_info_set = set(data.split("##", 1)[0].split("@"))
                 # 获取码字数据(字符串的字节码)
@@ -185,13 +186,15 @@ def feedback_to_peer(sockfd_withPeer, Q_need_to_sendback, time_queue, L_decoded,
     # 当一轮传输未结束, 仍然反馈邻居的交换请求
     while need_to_forwardrecv.value:
         while not Q_need_to_sendback.empty():
-            peerAddr = Q_need_to_sendback.get()
+            if not need_to_forwardrecv.value:
+                break
             # print(" Qsize get: ", peerAddr)
             # 选出数据发送给该邻居
             if len(L_decoded) + len(L_undecoded) > 0:
+                peerAddr = Q_need_to_sendback.get()
                 encoded_Data = get_forward_encoded_data(time_queue, L_decoded, L_undecoded, start_index)
 
-                print("\n\n", time.ctime().split(" ")[3], "转发层 回发应答 ---> :", peerAddr[1])
+                print(time.ctime().split(" ")[4], "回发   应 答 ---> ", peerAddr[1])
 
                 start_index += 1
                 # print("start_index: ", start_index)
@@ -262,7 +265,7 @@ def comm_with_peer(ADDR, L_decoded, L_undecoded, source_not_confirmed, lock_of_L
                 print("不发送, 数据为空: ===================->", encoded_Data)
                 continue
             else:
-                print("\n\n", time.ctime().split(" ")[3], "转发层 发送请求 ---> :", dest_addr[1])
+                print('\n' + time.ctime().split(" ")[4], "发送   请 求 ---> ", dest_addr[1])
                 start_index += 1
                 send_with_loss_prob(sockfd_withPeer, encoded_Data, dest_addr)
                 # 延迟
