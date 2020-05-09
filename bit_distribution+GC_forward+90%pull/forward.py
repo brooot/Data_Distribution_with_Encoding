@@ -150,11 +150,11 @@ def recv_from_peer(sockfd_withPeer, Neigh_ADDR, L_decoded, L_undecoded, Q_need_t
 
                         if(Q_need_to_sendback.qsize() < len(Neigh_ADDR)):
                             Q_need_to_sendback.put(addr)
-                            print(time.ctime().split(" ")[4], "收到   请 求 <--- ", addr[1], "\n")
+                            print(time.ctime().split(" ")[4], "收到   请 求 <--- ", addr)
                             # print("\n收到  交换请求 <--- ", addr[1], "\n")
                     # 是反馈数据
                     else:
-                            print(time.ctime().split(" ")[4], "收到   回 复 <--- ", addr[1], "\n")
+                            print(time.ctime().split(" ")[4], "收到   回 复 <--- ", addr)
                         # print("\n收到  回复     <--- ", addr[1], "\n")
 
                 m_info_set = set(data.split("##", 1)[0].split("@"))
@@ -194,7 +194,7 @@ def feedback_to_peer(sockfd_withPeer, Q_need_to_sendback, time_queue, L_decoded,
                 peerAddr = Q_need_to_sendback.get()
                 encoded_Data = get_forward_encoded_data(time_queue, L_decoded, L_undecoded, start_index)
 
-                print(time.ctime().split(" ")[4], "回发   应 答 ---> ", peerAddr[1])
+                print(time.ctime().split(" ")[4], "回发   应 答 ---> ", peerAddr)
 
                 start_index += 1
                 # print("start_index: ", start_index)
@@ -265,7 +265,7 @@ def comm_with_peer(ADDR, L_decoded, L_undecoded, source_not_confirmed, lock_of_L
                 print("不发送, 数据为空: ===================->", encoded_Data)
                 continue
             else:
-                print('\n' + time.ctime().split(" ")[4], "发送   请 求 ---> ", dest_addr[1])
+                print('\n' + time.ctime().split(" ")[4], "发送   请 求 ---> ", dest_addr)
                 start_index += 1
                 send_with_loss_prob(sockfd_withPeer, encoded_Data, dest_addr)
                 # 延迟
