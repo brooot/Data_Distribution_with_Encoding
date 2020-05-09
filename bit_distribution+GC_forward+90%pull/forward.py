@@ -364,6 +364,7 @@ def comm_with_source(ADDR, L_decoded, L_undecoded, source_not_confirmed, lock_of
             #         f.write("(%d, %d),".encode() % i)
             # print("解码过程信息存放在 PureFountainCode_Log" + str(ADDR) + ".txt 中")
             print("从源端共收到 %d 个码字." % recv_num)
+            print("分段数量: %d" % subsection_num)
 
             break
     sockfd.close()
