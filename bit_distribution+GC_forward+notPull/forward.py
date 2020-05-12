@@ -222,7 +222,7 @@ def comm_with_peer(ADDR, L_decoded, L_undecoded, source_not_confirmed, lock_of_L
     Q_need_to_sendback = Queue(len(Neigh_ADDR))
 
     # 接收转发层数据的线程
-    t_recv_from_peer = Process(target=recv_from_peer, args=(nei_Need_Map, sockfd_withPeer, Neigh_ADDR, L_decoded, L_undecoded, Q_need_to_sendback, need_to_forwardrecv, lock_of_L))
+    t_recv_from_peer = threading.Thread(target=recv_from_peer, args=(nei_Need_Map, sockfd_withPeer, Neigh_ADDR, L_decoded, L_undecoded, Q_need_to_sendback, need_to_forwardrecv, lock_of_L))
     
     # 开始接受线程
     t_recv_from_peer.start()
@@ -234,7 +234,7 @@ def comm_with_peer(ADDR, L_decoded, L_undecoded, source_not_confirmed, lock_of_L
     time_queue = getDegreeSququeGC(len(Neigh_ADDR)) # 参数改成 subsection_num
     
     # 回发进程
-    t_feedback_to_peer = Process(target=feedback_to_peer, args=(nei_Need_Map, sockfd_withPeer, Q_need_to_sendback, time_queue, L_decoded, L_undecoded, start_index, source_not_confirmed, need_to_forwardrecv))
+    t_feedback_to_peer = threading.Thread(target=feedback_to_peer, args=(nei_Need_Map, sockfd_withPeer, Q_need_to_sendback, time_queue, L_decoded, L_undecoded, start_index, source_not_confirmed, need_to_forwardrecv))
     # 开始回馈线程
     t_feedback_to_peer.start()
     
@@ -339,8 +339,8 @@ def comm_with_source(ADDR, L_decoded, L_undecoded, source_not_confirmed, lock_of
 
             print("\n\n解码完成!")
 
-            p_send_ack = Process(target=send_ack, args=(source_not_confirmed, sockfd, source_ADDR))
-            p_confirm_ack = Process(target=confirm_ack, args=(source_not_confirmed, need_to_forwardrecv, sockfd, source_ADDR))
+            p_send_ack = threading.Thread(target=send_ack, args=(source_not_confirmed, sockfd, source_ADDR))
+            p_confirm_ack = threading.Thread(target=confirm_ack, args=(source_not_confirmed, need_to_forwardrecv, sockfd, source_ADDR))
 
             p_confirm_ack.start()
             p_send_ack.start()
@@ -400,8 +400,8 @@ def main():
     need_to_forwardrecv = Value('i', True)
     source_not_confirmed = Value('i', True)
 
-    p1 = Process(target=comm_with_source, args=(ADDR, L_decoded, L_undecoded, source_not_confirmed, lock_of_L, need_to_forwardrecv))
-    p2 = Process(target=comm_with_peer, args=(ADDR, L_decoded, L_undecoded, source_not_confirmed, lock_of_L, need_to_forwardrecv))
+    p1 = threading.Thread(target=comm_with_source, args=(ADDR, L_decoded, L_undecoded, source_not_confirmed, lock_of_L, need_to_forwardrecv))
+    p2 = threading.Thread(target=comm_with_peer, args=(ADDR, L_decoded, L_undecoded, source_not_confirmed, lock_of_L, need_to_forwardrecv))
 
     p1.start()
     p2.start()
