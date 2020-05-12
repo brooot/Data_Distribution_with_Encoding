@@ -1,22 +1,41 @@
 import random
 
-# 一代发送的编码分段大小
-subsection_num = 100
+# 一代发送的数据条数 , 每一条数据的大小是 67 个字符
+record_num = 2
 
-# 端口偏移
+# 最小编码单元大小 (如果按照每一条数据的大小来算的话是 68)
+smallest_piece = 10
+
+# 传输丢失率
+loss_rate = 0
+
+# 转发层挑选已解码的一度包的概率
+fenzi = 1 # 分子
+fenmu = 3 # 分母
+
+# 记录能直接被填满的个数
+full_num = 68*record_num //smallest_piece
+
+# 余数
+left = 68*record_num % smallest_piece
+
+# 记录分段的个数, 在运行的时候被赋值
+piece_num = full_num + (1 if left else 0)
+
+
+# 转发层互相发送的端口相对于原始端口的偏移, 不宜小于转发层节点个数
 PortOffset = 100
-
 
 source_ADDR = ("127.0.0.1", 6000)
 
 Dest_ADDR = [
                     ("127.0.0.1", 7001),
                     ("127.0.0.1", 7002),
-                    ("127.0.0.1", 7003),
-                    ("127.0.0.1", 7004),
+                    # ("127.0.0.1", 7003),
+                    # ("127.0.0.1", 7004),
                 ]
 # 源端发送延迟
-send_delay = 0.2
+send_delay = 1
 
 # 转发层发送延迟
 forward_send_delay = send_delay 
@@ -25,12 +44,7 @@ forward_send_delay = send_delay
 # 当已解码的比例超过该值时, 开始拉取未解码的内容.
 # ratio_to_pull = 0 # 此处不要修改, 因为总是需要告知自己的未解码数据给对方
 
-# 传输丢失率
-loss_rate = 0
 
-# 转发层挑选已解码的一度包的概率
-fenzi = 1 # 分子
-fenmu = 3 # 分母
 
 # 获取转发层自身地址
 def get_forward_selfADDR(selfAddr):

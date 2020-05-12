@@ -11,17 +11,35 @@ bytes_list = []
 
 # 一代中切片的个数是40
 # 获取一代中的 k 条数据的编码后的字节码列表
-def get_bytesList_of_a_generation(k):
-    global bytes_list
-    file_Lines = []  # 一代数据列表 ['一条记录','一条记录',..., '一条记录'] 一代共 40 条
-    num = 0
-    with open("data.txt", "r") as f:
-        for i in range(k):  # 一代 k 片数据, 每一片表示一条68字符的完整的记录
-            line = f.readline().strip('\n')
-            file_Lines.append(line.encode())
-    bytes_list = file_Lines
-    return bytes_list  # 返回记录的字节码列表
+# def get_bytesList_of_a_generation(k):
+#     global bytes_list
+#     file_Lines = []  # 一代数据列表 ['一条记录','一条记录',..., '一条记录'] 一代共 40 条
+#     with open("data.txt", "r") as f:
+#         for i in range(k):  # 一代 k 片数据, 每一片表示一条68字符的完整的记录
+#             line = f.readline().strip('\n')
+#             file_Lines.append(line.encode())
+#     bytes_list = file_Lines
+#     return bytes_list  # 返回记录的字节码列表
 
+def get_bytesList_of_a_generation(k): # k 表示读取的数据的条数
+    global bytes_list
+    if not bytes_list:
+        bytes_list = []  # 一代数据列表 ['一条记录','一条记录',..., '一条记录'] 一代共 40 条
+        with open("data.txt", "rb") as f:
+            all_bytes = b""
+            for i in range(k):  # 一代 k 片数据, 每一片表示一条68字符的完整的记录
+                all_bytes += f.readline()
+            print("left:" , left)
+            print("\n\n\n\n\n\n\n\n\nget piece_num: ", piece_num, "\n\n\n\n\n\n\n\n")
+            for i in range(full_num):
+                bytes_list.append(all_bytes[:smallest_piece])
+                all_bytes = all_bytes[smallest_piece:]
+            if left:
+                bytes_list.append(all_bytes + "=".encode()*(smallest_piece - left))
+        # print(bytes_list)
+        return bytes_list  # 返回记录的字节码列表
+    else:
+        return bytes_list
 
 # 二进制分布
 def get_Bit_distribution(k):
@@ -57,13 +75,15 @@ def get_Degree(k, p):
 def data_coding(source_data, d):
     m_info = ""
     codeList = []
-    for _id in random.sample(range(1,len(source_data)+1), d):
+    for _id in random.sample(range(1,piece_num+1), d):
         # 添加码字信息
         if(m_info == ""):
             m_info += str(_id)
         else:
             m_info += "@" + str(_id)
         # 码子编码
+        print("source_data:", source_data)
+        print("_id:", _id)
         codeList.append(source_data[_id-1])
     m_code = bytesList_Xor_to_Bytes(codeList)
     # 已经编码后的字节码数据
@@ -78,9 +98,16 @@ def get_encoded_data(k, p):
     # 获取一代的字节码列表
     global bytes_list
     if not bytes_list:
-        get_bytesList_of_a_generation(k)
+        bytes_list = get_bytesList_of_a_generation(k)
     # 获取随机的编码度
     encode_degree = get_Degree(k, p)
+    print("piece_num: ", piece_num)
+    print("encode_degree")
+    encode_degree = get_Degree(k, p)
+    while encode_degree > piece_num:
+        encode_degree = get_Degree(k, p)    
+        print("encode_degree", encode_degree)
+        print("--")
 
     print("编码度: ",encode_degree)
     return data_coding(bytes_list, encode_degree)

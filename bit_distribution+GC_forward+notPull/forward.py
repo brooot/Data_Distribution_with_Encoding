@@ -231,7 +231,7 @@ def comm_with_peer(ADDR, L_decoded, L_undecoded, source_not_confirmed, lock_of_L
     # 开始下标
     start_index = 0
     # 时间序列
-    time_queue = getDegreeSququeGC(len(Neigh_ADDR)) # 参数改成 subsection_num
+    time_queue = getDegreeSququeGC(len(Neigh_ADDR)) # 参数改成 record_num
     
     # 回发进程
     t_feedback_to_peer = threading.Thread(target=feedback_to_peer, args=(nei_Need_Map, sockfd_withPeer, Q_need_to_sendback, time_queue, L_decoded, L_undecoded, start_index, source_not_confirmed, need_to_forwardrecv))
@@ -245,9 +245,9 @@ def comm_with_peer(ADDR, L_decoded, L_undecoded, source_not_confirmed, lock_of_L
     while source_not_confirmed.value:
         # 获取随机peer地址
         dest_addr = Neigh_ADDR[random.randint(0, len(Neigh_ADDR) - 1)]
-        # if len(L_decoded)>ratio_to_pull*subsection_num and len(L_decoded)<subsection_num:
+        # if len(L_decoded)>ratio_to_pull*record_num and len(L_decoded)<record_num:
         request_infos = "" # 需要的信息
-        for i in range(1,subsection_num+1):
+        for i in range(1,record_num+1):
             if str(i) not in L_decoded.keys():
                 request_infos += str(i) + '&'
         if dest_addr in nei_Need_Map:
@@ -307,7 +307,7 @@ def comm_with_source(ADDR, L_decoded, L_undecoded, source_not_confirmed, lock_of
         data = data.decode()
 
         # 提取源的发送轮次
-        send_round, data = data.split("~")
+        send_round, data = data.split("~", 1)
 
         m_info_set = set(data.split("##", 1)[0].split("@"))
         # 获取码字数据(字符串的字节码)
@@ -335,7 +335,7 @@ def comm_with_source(ADDR, L_decoded, L_undecoded, source_not_confirmed, lock_of
 
 
         # 若解码完成
-        if len(L_decoded) == subsection_num:
+        if len(L_decoded) == piece_num:
 
             print("\n\n解码完成!")
 
@@ -359,13 +359,12 @@ def comm_with_source(ADDR, L_decoded, L_undecoded, source_not_confirmed, lock_of
                     csvwriter.writerow([sen_round, deco_num])
 
 
-            sendRound_and_decodeNum
-            # # 将解码出的数据存放到txt文件中
+            
+            # 将解码出的数据存放到txt文件中
             with open("GCforward_Recv" + str(ADDR) + ".txt", 'wb') as f:
                 data_to_save = sorted(L_decoded.items(), key=lambda x: int(x[0]))
-                for line in data_to_save:
-                    record = line[1] + "\n".encode()
-                    f.write(record)
+                for piece in data_to_save:
+                    f.write(piece[1].split("=".encode(), 1)[0])
             print("\n解码数据已经存放在 PureFountainCode_Recv" + str(ADDR) + ".txt 中")
 
             # with open("Decoding_Log" + str(ADDR) + ".txt", 'wb') as f:
@@ -373,7 +372,8 @@ def comm_with_source(ADDR, L_decoded, L_undecoded, source_not_confirmed, lock_of
             #         f.write("(%d, %d),".encode() % i)
             # print("解码过程信息存放在 PureFountainCode_Log" + str(ADDR) + ".txt 中")
             print("从源端共收到 %d 个码字." % recv_num)
-            print("分段数量: %d" % subsection_num)
+            print("总记录条数: %d" % record_num)
+            
 
             break
     sockfd.close()
