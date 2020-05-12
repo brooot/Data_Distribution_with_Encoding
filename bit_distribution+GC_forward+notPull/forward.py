@@ -107,9 +107,7 @@ def confirm_ack(source_not_confirmed, need_to_forwardrecv, sockfd, source_addr):
 
 # 从转发层邻居收到的交换信息
 def recv_from_peer(nei_Need_Map, sockfd_withPeer, Neigh_ADDR, L_decoded, L_undecoded, Q_need_to_sendback, need_to_forwardrecv, lock_of_L):
-
     inputs = [sockfd_withPeer]
-
     # 记录从转发层邻居收到的数据
     recv_Peer_num = 0
     # 源端的一轮发送未结束,就始终接收邻居发来的信息.
@@ -125,16 +123,10 @@ def recv_from_peer(nei_Need_Map, sockfd_withPeer, Neigh_ADDR, L_decoded, L_undec
             if addr in Neigh_ADDR:
                 # 收到来自peer 的数据个数 + 1
                 recv_Peer_num += 1
-
                 data = data.decode()
-
-                # 如果是邻居来拉取信息, 将有的都发给邻居
                 codes_peer_need = data.split("&")[:-1]
                 # if codes_peer_need: # 如果带有请求数据
                 data = data.split('&')[-1]
-
-                # print("codes_peer_need: ", codes_peer_need)
-
                 # 记录对方需要的数据
                 nei_Need_Map[addr] = codes_peer_need
 
@@ -239,7 +231,7 @@ def comm_with_peer(ADDR, L_decoded, L_undecoded, source_not_confirmed, lock_of_L
     # 开始下标
     start_index = 0
     # 时间序列
-    time_queue = getDegreeSququeGC(len(Neigh_ADDR))
+    time_queue = getDegreeSququeGC(len(Neigh_ADDR)) # 参数改成 subsection_num
     
     # 回发进程
     t_feedback_to_peer = Process(target=feedback_to_peer, args=(nei_Need_Map, sockfd_withPeer, Q_need_to_sendback, time_queue, L_decoded, L_undecoded, start_index, source_not_confirmed, need_to_forwardrecv))
@@ -362,7 +354,7 @@ def comm_with_source(ADDR, L_decoded, L_undecoded, source_not_confirmed, lock_of
                 #dialect为打开csv文件的方式，默认是excel，delimiter="\t"参数指写入的时候的分隔符
                 csvwriter = csv.writer(datacsv,dialect = ("excel"))
                 #csv文件插入一行数据，把下面列表中的每一项放入一个单元格（可以用循环插入多行）
-                csvwriter.writerow(["源的发送轮次", "已解码个数"])
+                csvwriter.writerow(["源的发送序号", "已解码个数"])
                 for sen_round, deco_num in sendRound_and_decodeNum:
                     csvwriter.writerow([sen_round, deco_num])
 

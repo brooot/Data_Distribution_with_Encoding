@@ -105,9 +105,7 @@ def confirm_ack(source_not_confirmed, need_to_forwardrecv, sockfd, source_addr):
 
 # 从转发层邻居收到的交换信息
 def recv_from_peer(sockfd_withPeer, Neigh_ADDR, L_decoded, L_undecoded, Q_need_to_sendback, need_to_forwardrecv, lock_of_L):
-
     inputs = [sockfd_withPeer]
-
     # 记录从转发层邻居收到的数据
     recv_Peer_num = 0
     # 源端的一轮发送未结束,就始终接收邻居发来的信息.
@@ -118,14 +116,11 @@ def recv_from_peer(sockfd_withPeer, Neigh_ADDR, L_decoded, L_undecoded, Q_need_t
                 data, addr = sockfd_withPeer.recvfrom(2048)
             except Exception as e:
                 print("peer接收套接字异常, 错误信息: ", e)
-            
             # 如果是邻居且是发来的交换请求
             if addr in Neigh_ADDR:
                 # 收到来自peer 的数据个数 + 1
                 recv_Peer_num += 1
-
                 data = data.decode()
-
                 # 如果是邻居来拉取信息, 将有的都发给邻居
                 split_data = data.split("&")[:-1]
                 if split_data:
@@ -138,34 +133,25 @@ def recv_from_peer(sockfd_withPeer, Neigh_ADDR, L_decoded, L_undecoded, Q_need_t
                             # print("发送对方没有的数据: ")
                             send_with_loss_prob(sockfd_withPeer, send_msg, addr)
                             time.sleep(forward_send_delay)
-
-
                 else:
                     # 如果是新的交换数据请求
                     if data[0] == '!':
                         data = data[1:]
                         # 将地址传给发送进程, 告知其回发数据的地址
-                            # print("Q_need_to_sendback 长度已达最大值, 不可以再添加.")
-                            # raise
 
                         if(Q_need_to_sendback.qsize() < len(Neigh_ADDR)):
                             Q_need_to_sendback.put(addr)
                             print(time.ctime().split(" ")[4], "收到   请 求 <--- ", addr)
-                            # print("\n收到  交换请求 <--- ", addr[1], "\n")
                     # 是反馈数据
                     else:
                             print(time.ctime().split(" ")[4], "收到   回 复 <--- ", addr)
-                        # print("\n收到  回复     <--- ", addr[1], "\n")
 
                 m_info_set = set(data.split("##", 1)[0].split("@"))
                 # 获取码字数据(字符串的字节码)
                 m_data = data.split("##", 1)[1].encode()
-                # print("\n 从",addr[1] ,"收到 转发层 信息：", m_info_set, "\n")
                 # 给 lock_of_L & L_undecoded 上锁
                 with lock_of_L:
-                    # 解码
-                    recv_Handler(m_info_set, m_data, L_decoded, L_undecoded)
-                    # print("收到码字")
+                    recv_Handler(m_info_set, m_data, L_decoded, L_undecoded) # 解码
     print("从转发层共收到 %d 个码字." % recv_Peer_num)
 
                 # 记录 解码 曲线

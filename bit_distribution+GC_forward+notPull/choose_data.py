@@ -129,10 +129,10 @@ def getDegreeSququeGC(nsource):
     return time_queue
 
 # 转发层编码使用的方法，假如选出一个包，这个包比我的度小，就ok
-# time_queue  时间序列  L_decoded 已解码序列  L_undecoded未解码序列   n_index时间转换序列的轮次
+# nei_Need_codes 邻居需要的码字 time_queue  时间序列  L_decoded 已解码序列  L_undecoded未解码序列   n_index时间转换序列的轮次
 def get_forward_encoded_data(nei_Need_codes, time_queue, L_decoded, L_undecoded, n_index):
-    m_info = ""
-    if time_queue[n_index] == 1: # 序列为1
+    m_info = "" # 记录编码的码字信息
+    if time_queue[n_index] == 1: # 度为1
         if len(L_decoded) == 0: # 没有已解码的
             a = L_undecoded[0]  # 取未解码中的第一个包发出去
             for i in list(a[0]):
@@ -142,40 +142,44 @@ def get_forward_encoded_data(nei_Need_codes, time_queue, L_decoded, L_undecoded,
                     m_info += "@" + str(i)
             data = (m_info + "##").encode() + a[1]
             return data
-        elif nei_Need_codes:
-            for key in L_decoded.keys(): # 优先取出对方要且我有的发给他
+        # 如果对方有需要的包,不为空[]
+        elif nei_Need_codes: 
+            for key in L_decoded.keys(): # 优先取出对方要且我有的(已解码)发给他
                 if key in nei_Need_codes:
                     return (key + "##").encode() + L_decoded[key]
-        else:
-            a = random.sample(L_decoded.keys(), 1)  # 随机一个字典中的key，第二个参数为限制个数
+        # 无对方需要的码字信息
+        else: 
+            a = random.sample(L_decoded.keys(), 1)  # 随机一个已解码的码字
             b = a[0]
             data = (b + "##").encode() + L_decoded[b]
             return  data
 
+    # 编码度超过 1
     else:
-        m_info_list = []
-        degreeMax = time_queue[n_index]
-        codeList = []
-        maxIter = 50
-        _iter = 0
-        only_undecoded = False # 已解码中没有对方需要的
+        m_info_list = [] # 记录在找全是对方需要的码字的码字信息过程中已经添加的码字信息, 如果已经添加了就不再添加
+        degreeMax = time_queue[n_index] # 根据度时刻序列以及序号, 得到当前最大度
+        codeList = [] # 记录需要被异或编码的码字字节码, 当全部被添加后进行编码
+        maxIter = 50 # 最大迭代查找次数 50 次
+        _iter = 0 # 记录迭代次数
+        only_undecoded = False # 已解码中是否没有对方需要的, 是否只需要发送未解码中的
         while degreeMax > 0 and _iter < maxIter:
             _iter += 1
             # 随机数为1的话就选择从已解码中选取
             if not only_undecoded and random.randint(1,fenmu) <= fenzi:
-                added = False # 记录是否找到对方没有的一度包
-                for key in L_decoded.keys(): # 优先取出对方要且我有的发给他
-                    if key in nei_Need_codes and key not in m_info_list:
-                        m_info_list.append(key)
+                has_satisfying_1_degree_cw = False # 记录是否找到对方没有的一度包
+                
+                for key in L_decoded.keys(): # 遍历我的已解码列表, 优先取出对方要且我有的发给他
+                    if key in nei_Need_codes and key not in m_info_list: # 我已解码 & 对方需要 & 不会重复添加
+                        m_info_list.append(key) # 记录我以添加该码字, 避免重复添加
                         if (m_info == ""):
                             m_info += str(key)
                         else:
                             m_info += "@" + str(key)
                         codeList.append(L_decoded[key])
                         degreeMax -= 1
-                        added = True
+                        has_satisfying_1_degree_cw = True
 
-                if not added: # 如果没找到对方要的就标记只发未解码中的
+                if not has_satisfying_1_degree_cw: # 如果没找到对方要的就标记只发未解码中的, 因为发送其他的一度包都是对方有的, 没有必要发送
                     only_undecoded = True
                     
             else: # 从未解码中找
