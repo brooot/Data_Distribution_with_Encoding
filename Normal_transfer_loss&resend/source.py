@@ -16,22 +16,24 @@ def send(Dest_ADDR, subsection_num, send_delay, sockfd, L_msg):
         time.sleep(1)
         print("%ds 后开始发送数据" % (3-i))
     t_begin = time.time()
-    send_time = 1;
+    send_time = 1
+    msg_index = -1
     for msg in L_msg:
-        msg_index = L_msg.index(msg)
-        # print(msg_index)
+        # msg_index = L_msg.index(msg)
+        msg_index += 1
+        print("send_index: ", msg_index)
+        send_msg = (str(msg_index) + "&").encode() + msg  # 编号 + & + 数据
         for neighbor in Dest_ADDR:
             if random.random()<Channel_loss_probability: # 信道丢失率 为 0.3
                 print("第%3d 次发送失败(丢失)" % send_time)
+                time.sleep(send_delay)
                 send_time += 1
                 continue
             else:
                 print("第%3d 次发送成功" % send_time)
                 send_time += 1
+                sockfd.sendto(send_msg, neighbor)
                 time.sleep(send_delay)
-                msg = (str(msg_index) + "&").encode() + msg  # 编号 + & + 数据
-                # print(msg, neighbor)
-                sockfd.sendto(msg, neighbor)
 
     # 通知邻居自己已经发送完成
     for nei in Dest_ADDR:
@@ -41,7 +43,7 @@ def send(Dest_ADDR, subsection_num, send_delay, sockfd, L_msg):
     ack_neighbor = []
     still_need_sending = Value('i', True)
     while still_need_sending.value:
-        data, addr = sockfd.recvfrom(1024)
+        data, addr = sockfd.recvfrom(4096)
         data = data.decode()
         if data == "ok":
             sockfd.sendto("got_it".encode(),addr)

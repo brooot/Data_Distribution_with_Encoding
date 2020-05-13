@@ -60,12 +60,14 @@ def recv_from_source(sockfd, ADDR):
             if data.decode() == "!": # 结束接受
                 source_addr = addr
                 break
-            recv_num += 1   
+            recv_num += 1
             recv_msg = data.decode().split("&")
             msg_index = int(recv_msg[0])
             msg_data = recv_msg[1].encode()
             recv_data[msg_index] = msg_data
-            print("recv_data:",recv_data.keys())
+            # print("recv_data: ",recv_data.keys())
+            print("recv_data_index: ", msg_index)
+
 
     need_to_resend_ack = Value('i', True)
 
