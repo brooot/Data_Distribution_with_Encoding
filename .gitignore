@@ -11,3 +11,4 @@ bit_distribution+GC_forward+90%pull/config.py
 bit_distribution+GC_forward+90%pull/config.py
 *.iml
 *.xml
+bit_distribution+GC_forward+notPull/ttt.py
