@@ -26,10 +26,11 @@ def check_ack(still_need_sending, sockfd, ack_neighbor, Dest_ADDR):
                 print("主机 %s 发来消息：%s" % (addr, data.decode()))
 
 # 发送进程函数
-def send(still_need_sending, ack_neighbor, Dest_ADDR, record_num, sockfd):
-    print("发送分段大小为: ", record_num)
+def send(still_need_sending, ack_neighbor, Dest_ADDR, sockfd):
+    print("发送记录条数为: ", record_num)
+    print("发送分段大小为: ", piece_num)
     # 根据分段的个数k, 确定度的概率分布
-    p = get_Bit_distribution(record_num)
+    p = get_Bit_distribution(piece_num)
     for i in range(3):
         time.sleep(1)
         print("%ds 后开始发送数据" % (3-i))
@@ -39,7 +40,7 @@ def send(still_need_sending, ack_neighbor, Dest_ADDR, record_num, sockfd):
 
     # 首先发送一轮一度的包
     # 获取所有的一轮中药发送的数据
-    bytes_List = get_bytesList_of_a_generation(record_num)
+    bytes_List = get_bytesList_of_a_generation(piece_num)
     # 添加码字信息
     dest_num = len(Dest_ADDR) # 获取转发层节点个数
     recver_index = 0 # 记录当前要发给哪个转发层节点
@@ -64,9 +65,9 @@ def send(still_need_sending, ack_neighbor, Dest_ADDR, record_num, sockfd):
                     #这个方法在choose_data里
                     #度时刻转换序列
                     # 度分布函数
-                    # encoded_Data = get_encoded_data_sort(record_num, p,send_num,len(Dest_ADDR))
+                    # encoded_Data = get_encoded_data_sort(piece_num, p,send_num,len(Dest_ADDR))
                     send_num += 1
-                    encoded_Data = get_encoded_data(record_num, p)
+                    encoded_Data = get_encoded_data(piece_num, p)
                     encoded_Data = (str(send_num) + "~").encode() + encoded_Data
                     send_with_loss_prob(sockfd, encoded_Data, neighbor)
                     time.sleep(send_delay)
@@ -101,8 +102,8 @@ def main():
         still_need_sending = Value('i', True)
         
         # 定义发送子进程
-        p_send = Process(target=send, args=(still_need_sending, ack_neighbor, Dest_ADDR, record_num, sockfd))
-        # 定义ack校验子进程  record_num, send_delay这两个参数都是在config文件中的  sockfd是UDP套接字
+        p_send = Process(target=send, args=(still_need_sending, ack_neighbor, Dest_ADDR, sockfd))
+        # 定义ack校验子进程
         p_check_ack = Process(target=check_ack, args=(still_need_sending, sockfd, ack_neighbor, Dest_ADDR))
         
         # 开启ack校验进程

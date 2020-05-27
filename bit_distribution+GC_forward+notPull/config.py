@@ -1,10 +1,10 @@
 import random
 
-# 一代发送的数据条数 , 每一条数据的大小是 67 个字符
-record_num = 2
+# 一代发送的数据条数 , 每一条数据的大小是 68 个字符
+record_num = 100
 
 # 最小编码单元大小 (如果按照每一条数据的大小来算的话是 68)
-smallest_piece = 10
+smallest_piece = 68
 
 # 传输丢失率
 loss_rate = 0

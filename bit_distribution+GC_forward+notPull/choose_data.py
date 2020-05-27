@@ -29,8 +29,6 @@ def get_bytesList_of_a_generation(k): # k 表示读取的数据的条数
             all_bytes = b""
             for i in range(k):  # 一代 k 片数据, 每一片表示一条68字符的完整的记录
                 all_bytes += f.readline()
-            print("left:" , left)
-            print("\n\n\n\n\n\n\n\n\nget piece_num: ", piece_num, "\n\n\n\n\n\n\n\n")
             for i in range(full_num):
                 bytes_list.append(all_bytes[:smallest_piece])
                 all_bytes = all_bytes[smallest_piece:]
