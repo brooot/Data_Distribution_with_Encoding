@@ -11,18 +11,6 @@ import math
 
 bytes_list = []
 
-# 一代中切片的个数是40
-# 获取一代中的 k 条数据的编码后的字节码列表
-# def get_bytesList_of_a_generation(k):
-#     global bytes_list
-#     file_Lines = []  # 一代数据列表 ['一条记录','一条记录',..., '一条记录'] 一代共 40 条
-#     with open("data.txt", "r") as f:
-#         for i in range(k):  # 一代 k 片数据, 每一片表示一条68字符的完整的记录
-#             line = f.readline().strip('\n')
-#             file_Lines.append(line.encode())
-#     bytes_list = file_Lines
-#     return bytes_list  # 返回记录的字节码列表
-
 
 def get_bytesList_of_a_generation():  # k 表示读取的数据的条数
     global bytes_list
@@ -32,8 +20,6 @@ def get_bytesList_of_a_generation():  # k 表示读取的数据的条数
             all_bytes = b""
             for i in range(record_num):  # 一代 k 片数据, 每一片表示一条68字符的完整的记录
                 all_bytes += f.readline()
-            print("left:", left)
-            print("\n\n\nget piece_num: ", piece_num, "\n\n\n")
             for i in range(full_num):
                 bytes_list.append(all_bytes[:smallest_piece])
                 all_bytes = all_bytes[smallest_piece:]

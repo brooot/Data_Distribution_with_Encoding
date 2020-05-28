@@ -69,39 +69,8 @@ def send(still_need_sending, ack_neighbor, Dest_ADDR, record_num, sockfd):
         if _idx == len(Dest_ADDR):
             _idx = 0
  
-
-    # while still_need_sending.value:
-    #     for _id in range(1,piece_num+1):
-    #         send_num += 1
-    #         preSendData = ""
-    #         preSendData += str(_id) + "##"
-    #         preSendData = preSendData.encode() + bytes_List[_id-1]
-    #         preSendData = (str(send_num) + "~").encode() + preSendData
-    #         send_with_loss_prob(sockfd, preSendData, Dest_ADDR[recver_index])
-    #         recver_index += 1
-    #         if recver_index == len(Dest_ADDR):
-    #             recver_index = 0
-    #         print("发送数据的编码信息: " + str(_id) + "\n---------------------------\n")
-    #         time.sleep(send_delay)
-
     print("------------------ 发送完毕 -----------------")
 
-    # # 当仍然未解码, 开始编码发送
-    # while still_need_sending.value:
-    #     for neighbor in Dest_ADDR:
-    #         if len(ack_neighbor) < len(Dest_ADDR) :
-    #             if neighbor not in ack_neighbor:
-    #                 #这个方法在choose_data里
-    #                 #度时刻转换序列
-    #                 # 度分布函数
-    #                 # encoded_Data = get_encoded_data_sort(record_num, p,send_num,len(Dest_ADDR))
-    #                 send_num += 1
-    #                 encoded_Data = get_encoded_data(record_num, p)
-    #                 encoded_Data = (str(send_num) + "~").encode() + encoded_Data
-    #                 send_with_loss_prob(sockfd, encoded_Data, neighbor)
-    #                 time.sleep(send_delay)
-    #         else:
-    #             break
     t_end = time.time()
     print("\n---------------------------\n接收方已经全部解码完成!\n\n")
     print("共用时: %lf 秒" % (t_end - t_begin))
