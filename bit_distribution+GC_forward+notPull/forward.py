@@ -231,7 +231,7 @@ def comm_with_peer(ADDR, L_decoded, L_undecoded, source_not_confirmed, lock_of_L
     # 开始下标
     start_index = 0
     # 时间序列
-    time_queue = getDegreeSququeGC(len(Neigh_ADDR)) # 参数改成 record_num
+    time_queue = getDegreeSququeGC(piece_num) # 参数改成 record_num
     
     # 回发进程
     t_feedback_to_peer = threading.Thread(target=feedback_to_peer, args=(nei_Need_Map, sockfd_withPeer, Q_need_to_sendback, time_queue, L_decoded, L_undecoded, start_index, source_not_confirmed, need_to_forwardrecv))
