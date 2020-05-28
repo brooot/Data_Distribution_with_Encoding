@@ -1,13 +1,13 @@
 import random
 
 # 一代发送的数据条数 , 每一条数据的大小是 68 个字符
-record_num = 100
+record_num = 10
 
 # 最小编码单元大小 (如果按照每一条数据的大小来算的话是 68)
 smallest_piece = 68
 
 # 传输丢失率
-loss_rate = 0
+loss_rate = 0.03
 
 # 转发层挑选已解码的一度包的概率
 fenzi = 1 # 分子
@@ -35,7 +35,7 @@ Dest_ADDR = [
                     # ("127.0.0.1", 7004),
                 ]
 # 源端发送延迟
-send_delay = 1
+send_delay = 0.1
 
 # 转发层发送延迟
 forward_send_delay = send_delay 
