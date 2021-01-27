@@ -194,7 +194,7 @@ def main(min_unit, pieces_each_round, exp_index):
         csvwriter.writerow(["总发送次数", "系统运行时间"])
         csvwriter.writerow([sendNum.value, "%2f" % total_time.value])
 
-    return total_time.value
+    return sendNum.value
 
 
 if __name__ == '__main__':

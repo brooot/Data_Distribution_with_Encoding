@@ -77,7 +77,8 @@ class Generation:
             min_unit, T_slot, a, b, c = parameter_list
 
             # 调整所有的5个参数
-            send_num = Experiment.run(int(min_unit), int(T_slot), a, b, c)
+            # send_num = Experiment.run(int(min_unit), int(T_slot), a, b, c) # 2021.01.27修改前
+            send_num = Experiment.run(28, int(T_slot), a, b, c)
 
             # 只调整 后四个参数
             # send_num = Experiment.run(68, int(T_slot), a, b, c)

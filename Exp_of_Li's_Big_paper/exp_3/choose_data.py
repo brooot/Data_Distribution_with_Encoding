@@ -59,13 +59,14 @@ def get_idealSolition_degree_distribution(piece_num):
 
 # 鲁棒孤子分布
 def get_robustSolition_degree_distribution(piece_num):
-    c = 0.5
-    delta = 0.03
+    c = 0.05
+    delta = 0.05
     p_ideal = get_idealSolition_degree_distribution(piece_num)
     p = {0: 0}
     R = c * math.log(piece_num) * math.sqrt(piece_num)
     tau = [0]
     if R == 0:
+        print("piece_num make R=0, piece_num = ", piece_num)
         raise Exception("R=0")
     for i in range(1, math.floor(piece_num / R)):
         tau.append(R / i / piece_num)
@@ -82,6 +83,31 @@ def get_robustSolition_degree_distribution(piece_num):
         # print(p[i])
     return p
 
+# 用于实验三新度分布, 获取未累加的鲁棒孤子分布
+def get_raw_robustSolition_degree_distribution(piece_num):
+    c = 0.05
+    delta = 0.05
+    p_ideal = get_idealSolition_degree_distribution(piece_num)
+    p = {0: 0}
+    R = c * math.log(piece_num) * math.sqrt(piece_num)
+    tau = [0]
+    if R == 0:
+        print("piece_num make R=0, piece_num = ", piece_num)
+        raise Exception("R=0")
+    for i in range(1, math.floor(piece_num / R)):
+        tau.append(R / i / piece_num)
+    if delta == 0:
+        raise Exception("丢失率 loss_rate 不能为 0.")
+    tau.append(R * math.log(R / delta) / piece_num)
+    while len(tau) < piece_num + 1:
+        tau.append(0)
+    beta = 0
+    for i in range(1, piece_num + 1):
+        beta += p_ideal[i] + tau[i]
+    for i in range(1, piece_num + 1):
+        p[i] = (p_ideal[i] + tau[i]) / beta
+        # print(p[i])
+    return p
 
 
 def get_exponentialSolition_degree_distribution(piece_num):
@@ -95,22 +121,14 @@ def get_newSolition_degree_distribution(piece_num):
     x = 1
     y = 0.5
     p_e = get_exponentialSolition_degree_distribution(piece_num)
-    p_r = get_robustSolition_degree_distribution(piece_num)
-    print (p_r[1]*4)
+    p_r = get_raw_robustSolition_degree_distribution(piece_num)
+    # print (p_r[1]*4)
     O = 0
     q = {0:0}
     for i in range(1, piece_num + 1):
         O = O + x * p_e[i] + y * p_r[i]
-
-    print (O)
-
     for i in range(1, piece_num + 1):
-        q[i] = (x * p_e[i] + y * p_r[i]) / O
-    print (q)
-    g = 0
-    for i in range(1, piece_num + 1):
-        g = g + q[i]
-    print (g)
+        q[i] = (x * p_e[i] + y * p_r[i]) / O + q[i-1]
     return q
 
 
@@ -165,22 +183,47 @@ def get_rand_package_from_undecoded(L_undecoded):
 
 
 # 使用遗传算法的代码
-def get_forward_GA_data(nei_Need_codes, u, L_decoded, L_undecoded, _a, _b, _c):
-    # print("called", time.time())
+def get_forward_GA_data(nei_Need_codes, u, L_decoded, L_undecoded, _a, _b, _c, max_degree):
     m_info = ""  # 记录编码的码字信息
     if nei_Need_codes:
         dist = int(_a * (u ** _b) + _c * u + 1)  # 获取距离
+
+        # 先直接尽量从已解码中随机选出 dist 个
+        max_set_len = 0
+        fit_data = b""
+        L_iterDecoded = L_decoded
+        for key in L_iterDecoded.keys():
+            if len(m_info) > max_degree:
+                continue
+            # 度没有超过最大允许的度
+            else:
+                if key in nei_Need_codes:
+                    if m_info == "":
+                        m_info += str(key)
+                    else:
+                        m_info += "@" + str(key)
+                    if len(fit_data) > 0: # 如果已经有编码数据, 将当前数据和之前的进行编码
+                        fit_data = bytesList_Xor_to_Bytes([fit_data, L_decoded[key]])
+                    else: # 第一个匹配的数据, 直接赋值
+                        fit_data = L_decoded[key]
+                    max_set_len += 1
+                    # 若是找到的编码度等于需要的码字距离则直接返回
+                    if max_set_len == dist:
+                        return (m_info + "##").encode() + fit_data
+                    
+        # 还原初始状态
         max_set_len = 0
         fit_set = set()
         fit_data = b""
+        # 先从未解码中找, 剩下的再到已解码中去找来填补
         for info_set, data in L_undecoded:
-            if len(info_set) <= 2 * dist:
+            if len(info_set) <= max_degree:
                 valuable_info = []  # 未解码中对方需要的码字info
                 # 计算info_set的距离
                 for i in info_set:
                     if i in nei_Need_codes:
                         valuable_info.append(i)
-                if max_set_len < len(valuable_info) <= dist:
+                if max_set_len < len(valuable_info) <= dist: # 尽量找距离大的未解码包
                     max_set_len = len(valuable_info)
                     fit_set = info_set
                     fit_data = data
@@ -207,8 +250,9 @@ def get_forward_GA_data(nei_Need_codes, u, L_decoded, L_undecoded, _a, _b, _c):
             # 在已解码中找对方需要的进行编码
             L_iterDecoded = L_decoded
             for key in L_iterDecoded.keys():
-                if len(m_info) > 2 * dist:
-                    break
+                if len(m_info) > max_degree:
+                    continue
+                # 度没有超过最大允许的度
                 else:
                     if key not in fit_set and key in nei_Need_codes:
                         if m_info == "":
@@ -237,6 +281,7 @@ def get_forward_GA_data(nei_Need_codes, u, L_decoded, L_undecoded, _a, _b, _c):
                     return None
             # print(f"u = {u}, dist = {dist}, m_info = {m_info}")
             return (m_info + "##").encode() + fit_data
+        
     # 不知道对方需要什么
     else:
         if len(L_decoded):
@@ -255,6 +300,23 @@ def get_forward_GA_data(nei_Need_codes, u, L_decoded, L_undecoded, _a, _b, _c):
             return data
         else:
             return None
+
+# 获取最大允许的度
+def get_max_degree_allowed(decodedNum, totalNum):
+    divideRatio = 0.5  # 切分点
+    # 在小于切分比例的时候, 使用实验二的度分布随机获取编码度
+    if decodedNum < 2:
+        return 2
+    if decodedNum <= divideRatio * totalNum:
+        p = get_robustSolition_degree_distribution(decodedNum)
+        maxDegreeAllowed = get_Degree(decodedNum, p)
+        return maxDegreeAllowed
+    # 使用新的度分布获取随机编码度
+    else:
+        p = get_newSolition_degree_distribution(decodedNum)
+        maxDegreeAllowed = get_Degree(decodedNum, p)
+        return maxDegreeAllowed
+
 
 
 # 获取随机的编码度
@@ -444,3 +506,14 @@ def get_forward_encoded_data_1(time_queue, L_decoded, L_undecoded, n_index):
         value1 = L_decoded[key1]
         data = (key1 + "##").encode() + value1
         return data
+
+
+
+# for decodedNum in range(2, 20):
+#     p = get_newSolition_degree_distribution(decodedNum)
+#     maxDegreeAllowed = get_Degree(decodedNum, p)
+#     print("maxDegreeAllowed: ", maxDegreeAllowed)
+#     print("-----------------------")
+
+# n = 10
+# get_robustSolition_degree_distribution(piece_num)

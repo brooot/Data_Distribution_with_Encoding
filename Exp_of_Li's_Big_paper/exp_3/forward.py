@@ -200,7 +200,7 @@ def recv_from_peer(self_Addr, interval_map, forward_send_num, nei_Need_Map, sock
 
 
 def feedback_to_peer(nei_Need_Map, sockfd_withPeer, Q_need_to_sendback, L_decoded, L_undecoded,
-                     source_not_confirmed, need_to_forwardrecv, _a, _b, _c):
+                     source_not_confirmed, need_to_forwardrecv, _a, _b, _c, piece_num):
     while len(L_decoded) + len(L_undecoded) == 0:
         pass
 
@@ -213,7 +213,9 @@ def feedback_to_peer(nei_Need_Map, sockfd_withPeer, Q_need_to_sendback, L_decode
                 need_codes = nei_Need_Map[peerAddr]
             else:
                 need_codes = []
-            encoded_Data = get_forward_GA_data(need_codes, 0, L_decoded, L_undecoded, _a, _b, _c)
+            # 获取当前最大允许的编码度
+            max_degree_allowed = get_max_degree_allowed(len(L_decoded), piece_num)
+            encoded_Data = get_forward_GA_data(need_codes, 0, L_decoded, L_undecoded, _a, _b, _c, max_degree_allowed)
             if encoded_Data:
                 # print(time.ctime().split(" ")[4], "发送  应答码字 ---> ", peerAddr)
                 cfg.send_with_loss_prob(sockfd_withPeer, encoded_Data, peerAddr)
@@ -261,7 +263,7 @@ def comm_with_peer(ADDR, L_decoded, L_undecoded, source_not_confirmed, lock_of_L
     # 回发进程
     t_feedback_to_peer = threading.Thread(target=feedback_to_peer, args=(
         nei_Need_Map, sockfd_withPeer, Q_need_to_sendback, L_decoded, L_undecoded,
-        source_not_confirmed, need_to_forwardrecv, a, b, c))
+        source_not_confirmed, need_to_forwardrecv, a, b, c, piece_num))
     # 开始回馈线程
     t_feedback_to_peer.start()
 
@@ -298,7 +300,8 @@ def comm_with_peer(ADDR, L_decoded, L_undecoded, source_not_confirmed, lock_of_L
         else:
             u = 0
         if need_codes != ["end"]:
-            forward_encoded_data = get_forward_GA_data(need_codes, u, L_decoded, L_undecoded, a, b, c)
+            max_degree_allowed = get_max_degree_allowed(len(L_decoded), piece_num)
+            forward_encoded_data = get_forward_GA_data(need_codes, u, L_decoded, L_undecoded, a, b, c, max_degree_allowed)
             # forward_encoded_data = get_Exp2_data(L_decoded)  # 实验二, 增长度分布方案
             if forward_encoded_data:  # 仅当需要发送时发送
                 encoded_Data = (request_infos + '!').encode() + forward_encoded_data

@@ -82,6 +82,7 @@ class Standard:
             len4 = Standard.EncodeLength[4]
 
             # np.random.randit()产生[0,2)之间的随机整数，第三个参数表示随机数的数量
+            print("len0: ", len0)
             chromsomes[popusize, :len0] = np.random.randint(0, 2, len0)
 
             chromsomes[popusize, len0:len0 + len1] = np.random.randint(0, 2, len1)
