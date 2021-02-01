@@ -11,7 +11,7 @@ import sys, random, os, time, copy, time, threading, select, csv
 
 # 返回自己没有的码字部分
 #            {'2','3'}   b"hello"
-def recv_Handler(m_info_set, m_data, L_decoded, L_undecoded, piece_num):
+def recv_Handler(m_info_set, m_data, L_decoded, L_undecoded, piece_num, validInfoNum):
     L = []
     for c_info in L_decoded.keys():
         if c_info in m_info_set:  # 如果新码字中包含已解码码字,就将其剔除
@@ -20,23 +20,21 @@ def recv_Handler(m_info_set, m_data, L_decoded, L_undecoded, piece_num):
 
     if (not L) and len(m_info_set) > 1 and ([m_info_set, m_data] not in L_undecoded):  # 如果没有相同的数据,表示无法解码,放入未解码的列表中
         L_undecoded.append([m_info_set, m_data])
-        # print("添加到未解码: ", [m_info_set, m_data])
+        validInfoNum.value += 1  # 有效数量 + 1
 
     elif m_info_set:  # 表示剥除部分且还有剩余
+        validInfoNum.value += 1  # 有效数量 + 1
         # 异或解码
         L.append(m_data)
         new_data = bytesList_Xor_to_Bytes(L)
 
         # 判断剩下的码字度是多少
         if len(m_info_set) == 1:  # 如果剩下的度为1, 递归解码
-            # print("度为1,进行递归解码")
             if int(list(m_info_set)[0]) > piece_num:
                 pass
-                # print(f"======\n\n======================= {list(m_info_set)[0]}=======================\n\n====== ")
             else:
                 recursion_Decode(list(m_info_set)[0], new_data, L_decoded, L_undecoded)
         elif m_info_set and [m_info_set, m_data] not in L_undecoded:  # 否则加入到未解码列表中
-            # print("度大于1,添加到未解码: ", [m_info_set, m_data])
             L_undecoded.append([m_info_set, m_data])
 
 
@@ -295,10 +293,10 @@ def comm_with_peer(ADDR, L_decoded, L_undecoded, source_not_confirmed, lock_of_L
             need_codes = nei_Need_Map[dest_addr]
         else:
             need_codes = []
-        if dest_addr in interval_map:
-            u = forward_send_num.value - interval_map[dest_addr]
-        else:
-            u = 0
+        # if dest_addr in interval_map:
+        #     u = forward_send_num.value - interval_map[dest_addr]
+        # else:
+        #     u = 0
         if need_codes != ["end"]:
             # forward_encoded_data = get_forward_GA_data(need_codes, u, L_decoded, L_undecoded, a, b, c)
             forward_encoded_data = get_rand_package_from_decoded_or_undecoded(L_decoded, L_undecoded)  # 随机获取已解码或未解码中的一个
@@ -313,13 +311,12 @@ def comm_with_peer(ADDR, L_decoded, L_undecoded, source_not_confirmed, lock_of_L
         else:
             cfg.send_with_loss_prob(sockfd_withPeer, "i need codes".encode(), dest_addr)
             forward_send_num.value += 1  # 转发层发送数量 + 1
-
     t_feedback_to_peer.join()
     t_recv_from_peer.join()
 
 
 def comm_with_source(sockfd, ADDR, L_decoded, L_undecoded, source_not_confirmed, lock_of_L, need_to_forwardrecv,
-                     piece_num, min_unit, recvNumFromSource, exp_index, decodeQueue):
+                     piece_num, min_unit, recvNumFromSource, exp_index, decodeQueue, validInfoNum):
     # print("主机 " + ADDR[0] + ":" + str(ADDR[1]) + " 正在等待数据...\n")
 
     sendRound_and_decodeNum = []
@@ -362,7 +359,7 @@ def comm_with_source(sockfd, ADDR, L_decoded, L_undecoded, source_not_confirmed,
                 time.sleep(1000)
                 pass
 
-        sendRound_and_decodeNum.append((send_round, len(L_decoded)))
+        sendRound_and_decodeNum.append((send_round, len(L_decoded), validInfoNum.value))
         pt_idx += 1
         if pt_idx == 5:
             pt_idx = 0
@@ -395,18 +392,19 @@ def comm_with_source(sockfd, ADDR, L_decoded, L_undecoded, source_not_confirmed,
                 # dialect为打开csv文件的方式，默认是excel，delimiter="\t"参数指写入的时候的分隔符
                 csvwriter = csv.writer(datacsv, dialect="excel")
                 # csv文件插入一行数据，把下面列表中的每一项放入一个单元格（可以用循环插入多行）
-                csvwriter.writerow(["源的发送序号", "已解码个数"])
-                for sen_round, deco_num in sendRound_and_decodeNum:
-                    csvwriter.writerow([sen_round, deco_num])
+                csvwriter.writerow(["源的发送序号", "已解码个数", "有效码字数量"])
+                for sen_round, deco_num, valid_num in sendRound_and_decodeNum:
+                    csvwriter.writerow([sen_round, deco_num, valid_num])
 
             break
 
+
 # 解码函数
-def Decoder(L_decoded, L_undecoded, decodeQueue, piece_num, need_to_forwardrecv):
+def Decoder(L_decoded, L_undecoded, decodeQueue, piece_num, need_to_forwardrecv, validInfoNum):
     while need_to_forwardrecv.value:
         while not decodeQueue.empty():
             m_info_set, m_data = decodeQueue.get()
-            recv_Handler(m_info_set, m_data, L_decoded, L_undecoded, piece_num)
+            recv_Handler(m_info_set, m_data, L_decoded, L_undecoded, piece_num, validInfoNum)
             if not need_to_forwardrecv.value:
                 break
 
@@ -463,14 +461,15 @@ def main(ip, port, min_unit, T_slot, a, b, c, pieces_each_round, exp_index):
         L_decoded = Manager().dict()
         L_undecoded = Manager().list()
         decodeQueue = Queue(10000) # 解码队列
+        validInfoNum = Value('i', 0)  # 标识收到的有效
 
         p1 = threading.Thread(target=comm_with_source,
                               args=(sockfd, ADDR, L_decoded, L_undecoded, source_not_confirmed, lock_of_L,
-                                    need_to_forwardrecv, piece_num, min_unit, recvNumFromSource, exp_index, decodeQueue))
+                                    need_to_forwardrecv, piece_num, min_unit, recvNumFromSource, exp_index, decodeQueue, validInfoNum))
         p2 = threading.Thread(target=comm_with_peer,
                               args=(ADDR, L_decoded, L_undecoded, source_not_confirmed, lock_of_L, need_to_forwardrecv,
                                     min_unit, T_slot, a, b, c, piece_num, recvNumFromPeer, decodeQueue))
-        p3 = threading.Thread(target=Decoder, args=(L_decoded, L_undecoded, decodeQueue, piece_num, need_to_forwardrecv))
+        p3 = threading.Thread(target=Decoder, args=(L_decoded, L_undecoded, decodeQueue, piece_num, need_to_forwardrecv, validInfoNum))
         
         p1.start()
         p2.start()

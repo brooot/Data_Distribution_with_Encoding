@@ -8,7 +8,7 @@ class Config:
     send_delay = 0.3
 
     # 一代发送的数据条数 , 每一条数据的大小是 68 个字符
-    record_num = 300
+    record_num = 10
 
     # 定义将数据分成几大段, 每一段作为一轮编码发送的数据
     # big_piece_num = 1
