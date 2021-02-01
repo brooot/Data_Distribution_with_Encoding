@@ -8,7 +8,7 @@ class Standard:
     # 参数上下界
     # decisionVariables = [[68, 69], [1,2], [0, 0.01], [-1, 1], [-1, 1]]
     # print("====================================", record_num*68//len(Dest_ADDR))
-    decisionVariables = [[10000, min(cfg.record_num*68, 70000)], [1, 3], [0.1, 1], [0.1, 0.5], [0.001, 0.01]]
+    decisionVariables = [[67, 69], [1, 3], [0.1, 1], [0.1, 0.5], [0.001, 0.01]]
 
     # 精度
     delta = 0.0001
@@ -58,6 +58,8 @@ class Standard:
                 res = fsolve(lambda x: ((uper - low) - 2 ** x + 1), 30)
                 # ceil()向上取整
                 length = int(np.ceil(res[0]))
+                # if length < 0:
+                #     raise Exception(f"长度小于0, length = {length}")
                 lengths.append(length)
             else:
                 res = fsolve(lambda x: ((uper - low) / delta - 2 ** x + 1), 30)
@@ -65,6 +67,8 @@ class Standard:
                 length = int(np.ceil(res[0]))
                 lengths.append(length)
             idx += 1
+        # print("lengths: ", lengths)
+        # raise Exception("stop")
         return lengths
 
     # 随机生成初始化种群
@@ -82,7 +86,6 @@ class Standard:
             len4 = Standard.EncodeLength[4]
 
             # np.random.randit()产生[0,2)之间的随机整数，第三个参数表示随机数的数量
-            print("len0: ", len0)
             chromsomes[popusize, :len0] = np.random.randint(0, 2, len0)
 
             chromsomes[popusize, len0:len0 + len1] = np.random.randint(0, 2, len1)

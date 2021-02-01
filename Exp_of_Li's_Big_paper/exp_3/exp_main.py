@@ -42,8 +42,8 @@ def main():
         print("自动化")
         for exp_index in range(1, exp_times+1):
             print(f"\n开始第{exp_index}次实验...")
-            send_time = Experiment.run(min_unit, T_slot, a, b, c, pieces_each_round, exp_index, -1)
-            print(f"第{exp_index}次实验的时间是{send_time}\n---------------------------")
+            sendNum = Experiment.run(min_unit, T_slot, a, b, c, pieces_each_round, exp_index, -1)
+            print(f"第{exp_index}次实验的发送次数是{sendNum}\n---------------------------")
     elif len(sys.argv) == 2 and sys.argv[1] == 'source':
         print("源端单独运行")
         send_time = Experiment.run(min_unit, T_slot, a, b, c, pieces_each_round, 1, 0)
