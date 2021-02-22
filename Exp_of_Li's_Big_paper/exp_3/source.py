@@ -1,14 +1,12 @@
 # encoding=utf-8
 import csv
-import sys, time, os, random, importlib
-from socket import *
-
-import select
-
-from choose_data import *
 from multiprocessing import *
+from socket import *
+from choose_data import *
 from config import *
-
+import select
+import jsonFile as jf
+sendDelay = jf.get_sendDelay()
 cfg = Config()
 
 
@@ -89,7 +87,8 @@ def send(total_time, still_need_sending, ack_neighbor, Dest_ADDR, sockfd, min_un
                     encoded_Data = get_encoded_data(piece_num, bytes_List, p)
                     encoded_Data = (str(sendNum.value) + "~").encode() + encoded_Data
                     cfg.send_with_loss_prob(sockfd, encoded_Data, neighbor)
-                    time.sleep(cfg.send_delay)
+                    time.sleep(sendDelay)
+                    print("source延时: ", sendDelay)
             else:
                 break
     t_end = time.time()
