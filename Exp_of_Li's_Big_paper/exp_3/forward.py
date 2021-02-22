@@ -3,9 +3,8 @@ from socket import *
 from multiprocessing import *
 from choose_data import *
 from config import *
-import jsonFile as jf
+
 cfg = Config()
-sendDelay = jf.get_sendDelay()
 
 import sys, random, os, time, copy, time, threading, select, csv
 
@@ -220,7 +219,7 @@ def feedback_to_peer(nei_Need_Map, sockfd_withPeer, Q_need_to_sendback, L_decode
             if encoded_Data:
                 # print(time.ctime().split(" ")[4], "发送  应答码字 ---> ", peerAddr)
                 cfg.send_with_loss_prob(sockfd_withPeer, encoded_Data, peerAddr)
-                time.sleep(sendDelay)  # 延迟
+                time.sleep(cfg.forward_send_delay)  # 延迟
             # else:
             #     print("None, 不反馈")
 
@@ -235,7 +234,7 @@ def comm_with_peer(ADDR, L_decoded, L_undecoded, source_not_confirmed, lock_of_L
     # 创建与转发层邻居通信的套接字
     sockfd_withPeer = socket(AF_INET, SOCK_DGRAM)
     sockfd_withPeer.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
-    sockfd_withPeer.settimeout(sendDelay)
+    sockfd_withPeer.settimeout(cfg.forward_send_delay)
 
     # 绑定转发层通信地址(相对源通信套接字端口偏移)
     self_Addr = cfg.get_forward_selfADDR(ADDR)
@@ -309,9 +308,9 @@ def comm_with_peer(ADDR, L_decoded, L_undecoded, source_not_confirmed, lock_of_L
                 # print(time.ctime().split(" ")[4], "发送  请求码字 ---> ", dest_addr)
                 cfg.send_with_loss_prob(sockfd_withPeer, encoded_Data, dest_addr)
                 forward_send_num.value += 1  # 转发层发送数量 + 1
-                time.sleep(sendDelay)  # 延迟
+                time.sleep(cfg.forward_send_delay)  # 延迟
             else:
-                time.sleep(sendDelay)  # 延迟
+                time.sleep(cfg.forward_send_delay)  # 延迟
         else:
             cfg.send_with_loss_prob(sockfd_withPeer, "i need codes".encode(), dest_addr)
             forward_send_num.value += 1  # 转发层发送数量 + 1

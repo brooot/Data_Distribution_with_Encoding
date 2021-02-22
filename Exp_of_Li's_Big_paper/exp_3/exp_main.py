@@ -3,14 +3,13 @@ import sys
 import Experiment
 from config import *
 import csv
-import jsonFile as jf
 
 cfg = Config()
 
 
 def main():
     min_unit, T_slot, a, b, c = 68, 1, 0.88652179221, 0.25726495726, 0.0073070866
-    exp_times = 25  # 实验次数
+    exp_times = 1  # 实验次数
     record_num = cfg.record_num
     # send_time_list = []
     # 获取分段的数量
@@ -41,15 +40,10 @@ def main():
     print("开始实验...")
     if len(sys.argv) == 1:
         print("自动化")
-        sendDelay = 0.01
-        jf.write_sendDelay(sendDelay)
         for exp_index in range(1, exp_times+1):
             print(f"\n开始第{exp_index}次实验...")
             sendNum = Experiment.run(min_unit, T_slot, a, b, c, pieces_each_round, exp_index, -1)
             print(f"第{exp_index}次实验的发送次数是{sendNum}\n---------------------------")
-            sendDelay = jf.get_sendDelay()
-            if sendDelay < 0.25:
-                jf.write_sendDelay(sendDelay + 0.01)
     elif len(sys.argv) == 2 and sys.argv[1] == 'source':
         print("源端单独运行")
         send_time = Experiment.run(min_unit, T_slot, a, b, c, pieces_each_round, 1, 0)
