@@ -316,7 +316,7 @@ def comm_with_peer(ADDR, L_decoded, L_undecoded, source_not_confirmed, lock_of_L
 
 
 def comm_with_source(sockfd, ADDR, L_decoded, L_undecoded, source_not_confirmed, lock_of_L, need_to_forwardrecv,
-                     piece_num, min_unit, recvNumFromSource, exp_index, decodeQueue, validInfoNum):
+                     piece_num, min_unit, recvNumFromSource, exp_index, decodeQueue, validInfoNum, recvNumFromPeer):
     # print("主机 " + ADDR[0] + ":" + str(ADDR[1]) + " 正在等待数据...\n")
 
     sendRound_and_decodeNum = []
@@ -359,7 +359,7 @@ def comm_with_source(sockfd, ADDR, L_decoded, L_undecoded, source_not_confirmed,
                 time.sleep(1000)
                 pass
 
-        sendRound_and_decodeNum.append((send_round, len(L_decoded), validInfoNum.value))
+        sendRound_and_decodeNum.append((send_round, len(L_decoded), validInfoNum.value, recvNumFromSource.value, recvNumFromPeer.value, recvNumFromSource.value + recvNumFromPeer.value))
         pt_idx += 1
         if pt_idx == 5:
             pt_idx = 0
@@ -392,9 +392,12 @@ def comm_with_source(sockfd, ADDR, L_decoded, L_undecoded, source_not_confirmed,
                 # dialect为打开csv文件的方式，默认是excel，delimiter="\t"参数指写入的时候的分隔符
                 csvwriter = csv.writer(datacsv, dialect="excel")
                 # csv文件插入一行数据，把下面列表中的每一项放入一个单元格（可以用循环插入多行）
-                csvwriter.writerow(["源的发送序号", "已解码个数", "有效码字数量"])
-                for sen_round, deco_num, valid_num in sendRound_and_decodeNum:
-                    csvwriter.writerow([sen_round, deco_num, valid_num])
+                csvwriter.writerow(["源的发送序号", "已解码个数", "有效码字数量", "从源收到码字数", "从转发层收到码字数", "总收到的码字数"])
+
+
+
+                for sen_round, deco_num, valid_num, recvNum_s, recvNum_p, recvNum_total in sendRound_and_decodeNum:
+                    csvwriter.writerow([sen_round, deco_num, valid_num, recvNum_s, recvNum_p, recvNum_total])
 
             break
 
@@ -465,7 +468,7 @@ def main(ip, port, min_unit, T_slot, a, b, c, pieces_each_round, exp_index):
 
         p1 = threading.Thread(target=comm_with_source,
                               args=(sockfd, ADDR, L_decoded, L_undecoded, source_not_confirmed, lock_of_L,
-                                    need_to_forwardrecv, piece_num, min_unit, recvNumFromSource, exp_index, decodeQueue, validInfoNum))
+                                    need_to_forwardrecv, piece_num, min_unit, recvNumFromSource, exp_index, decodeQueue, validInfoNum, recvNumFromPeer))
         p2 = threading.Thread(target=comm_with_peer,
                               args=(ADDR, L_decoded, L_undecoded, source_not_confirmed, lock_of_L, need_to_forwardrecv,
                                     min_unit, T_slot, a, b, c, piece_num, recvNumFromPeer, decodeQueue))
